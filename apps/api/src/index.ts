@@ -1,9 +1,45 @@
-import { Hono } from 'hono'
+import { serve } from '@hono/node-server';
 
-const app = new Hono()
+import { createApp } from '@/app';
+import { config } from '@/config/app';
+import { gracefulShutdown } from '@/utils/graceful-shutdown';
+import { logger } from '@/utils/logger';
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
+/**
+ * Start the server
+ */
+async function startServer(): Promise<void> {
+  try {
+    // Create the Hono app
+    const app = createApp();
 
-export default app
+    // Start the server
+    const server = serve({
+      fetch: app.fetch,
+      port: config.port,
+      hostname: config.host,
+    });
+
+    logger.info(`🚀 Server started on ${config.host}:${config.port}`);
+    logger.info(`📝 Environment: ${config.env}`);
+    logger.info(
+      `📚 API Documentation: http://${config.host}:${config.port}/docs`
+    );
+    logger.info(
+      `❤️  Health Check: http://${config.host}:${config.port}/health`
+    );
+
+    // Setup graceful shutdown
+    gracefulShutdown(server);
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Start the server if this file is run directly
+if (import.meta.main) {
+  void startServer();
+}
+
+export { createApp };

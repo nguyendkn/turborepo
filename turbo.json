@@ -8,7 +8,12 @@
       "outputs": [".next/**", "!.next/cache/**"]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^lint"],
+      "inputs": ["**/*.{ts,tsx,js,jsx}", "eslint.config.js", ".eslintrc.*"]
+    },
+    "format": {
+      "dependsOn": ["^format"],
+      "inputs": ["**/*.{ts,tsx,js,jsx,json,md,yml,yaml}", ".prettierrc.*", ".prettierignore"]
     },
     "check-types": {
       "dependsOn": ["^check-types"]
