@@ -2,7 +2,7 @@ import type { Handler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
 import { profileService } from '@/services/profile.service';
-import type { AppEnv, ApiResponse } from '@/types/app';
+import type { AppEnv, ApiResponse } from '@/types';
 import { logger } from '@/utils/logger';
 
 /**

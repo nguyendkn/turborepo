@@ -4,8 +4,9 @@ import * as jwt from 'jsonwebtoken';
 
 import { config } from '@/config/app';
 import { userRepository } from '@/repositories/user.repository';
-import { UserRole } from '@/types/app';
-import type { JwtPayload, RefreshTokenPayload } from '@/types/app';
+import { roleService } from '@/services/role.service';
+import { permissionEvaluatorService } from '@/services/permission-evaluator.service';
+import type { JwtPayload, RefreshTokenPayload } from '@/types';
 import { logger } from '@/utils/logger';
 
 /**
@@ -37,12 +38,14 @@ export const authService = {
     // Generate tokens
     const tokens = await this.generateTokens(
       user.id,
-      user.email,
-      user.role as UserRole
+      user.email
     );
 
     // Update last login
     await userRepository.updateLastLogin(user.id);
+
+    // Get user roles for response
+    const userRoles = await permissionEvaluatorService.getUserRoles(user.id);
 
     logger.info('User logged in', { userId: user.id, email: user.email });
 
@@ -52,7 +55,7 @@ export const authService = {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role,
+        roles: userRoles,
         isActive: user.isActive,
       },
       ...tokens,
@@ -85,7 +88,7 @@ export const authService = {
     const user = await userRepository.create({
       ...userData,
       passwordHash,
-      role: UserRole.USER,
+      // Role assignment handled by PBAC system
       isActive: true,
       emailVerified: false,
     });
@@ -94,14 +97,19 @@ export const authService = {
       throw new HTTPException(500, { message: 'Failed to create user' });
     }
 
+    // Assign default user role in PBAC system
+    await roleService.assignRoleToUser(user.id, 'user');
+
     // Generate tokens
     const tokens = await this.generateTokens(
       user.id,
-      user.email,
-      user.role as UserRole
+      user.email
     );
 
     logger.info('User registered', { userId: user.id, email: user.email });
+
+    // Get user roles for response
+    const userRoles = await permissionEvaluatorService.getUserRoles(user.id);
 
     return {
       user: {
@@ -109,7 +117,7 @@ export const authService = {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role,
+        roles: userRoles,
         isActive: user.isActive,
       },
       ...tokens,
@@ -136,8 +144,7 @@ export const authService = {
       // Generate new tokens
       const tokens = await this.generateTokens(
         user.id,
-        user.email,
-        user.role as UserRole
+        user.email
       );
 
       return tokens;
@@ -258,11 +265,10 @@ export const authService = {
   /**
    * Generate JWT tokens
    */
-  async generateTokens(userId: string, email: string, role: UserRole) {
+  async generateTokens(userId: string, email: string) {
     const jwtPayload: Omit<JwtPayload, 'iat' | 'exp'> = {
       sub: userId,
       email,
-      role,
     };
 
     const accessToken = jwt.sign(jwtPayload, config.jwt.secret, {

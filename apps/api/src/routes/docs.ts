@@ -2,7 +2,7 @@ import { swaggerUI } from '@hono/swagger-ui';
 import { Hono } from 'hono';
 
 import { config } from '@/config/app';
-import type { AppEnv } from '@/types/app';
+import type { AppEnv } from '@/types';
 
 /**
  * API documentation routes

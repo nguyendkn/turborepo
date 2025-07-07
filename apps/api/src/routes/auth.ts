@@ -1,66 +1,20 @@
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
-import { z } from 'zod';
 
 import { authController } from '@/controllers/auth.controller';
-import type { AppEnv } from '@/types/app';
+import {
+  loginSchema,
+  registerSchema,
+  refreshTokenSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+} from '@/schemas/auth.schemas';
+import type { AppEnv } from '@/types';
 
 /**
  * Authentication routes
  */
 export const authRoutes = new Hono<AppEnv>();
-
-/**
- * Login validation schema
- */
-const loginSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
-
-/**
- * Register validation schema
- */
-const registerSchema = z
-  .object({
-    email: z.string().email('Invalid email format'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    confirmPassword: z.string(),
-    firstName: z.string().min(1, 'First name is required'),
-    lastName: z.string().min(1, 'Last name is required'),
-  })
-  .refine(data => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  });
-
-/**
- * Refresh token validation schema
- */
-const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required'),
-});
-
-/**
- * Forgot password validation schema
- */
-const forgotPasswordSchema = z.object({
-  email: z.string().email('Invalid email format'),
-});
-
-/**
- * Reset password validation schema
- */
-const resetPasswordSchema = z
-  .object({
-    token: z.string().min(1, 'Reset token is required'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    confirmPassword: z.string(),
-  })
-  .refine(data => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  });
 
 /**
  * POST /auth/login

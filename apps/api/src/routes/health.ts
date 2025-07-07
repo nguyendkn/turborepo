@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 
 import { testConnection } from '@/config/database';
 import { testRedisConnection } from '@/config/redis';
-import type { AppEnv, ApiResponse } from '@/types/app';
+import type { AppEnv, ApiResponse } from '@/types';
 import { logger } from '@/utils/logger';
 
 /**

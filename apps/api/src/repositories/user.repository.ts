@@ -2,8 +2,8 @@ import { eq, and, or, like, desc, asc } from 'drizzle-orm';
 
 import { db } from '@/config/database';
 import { users } from '@/database/schema';
-import { UserRole } from '@/types/app';
-import type { PaginationParams, FilterParams, SortParams } from '@/types/app';
+// UserRole removed - using PBAC system instead
+import type { PaginationParams, FilterParams, SortParams } from '@/types';
 
 /**
  * User repository
@@ -56,9 +56,7 @@ export const userRepository = {
       );
     }
 
-    if (filters.role) {
-      conditions.push(eq(users.role, filters.role));
-    }
+    // Role filtering removed - use PBAC system instead
 
     if (filters.isActive !== undefined) {
       conditions.push(eq(users.isActive, filters.isActive));
@@ -72,7 +70,6 @@ export const userRepository = {
       email: users.email,
       firstName: users.firstName,
       lastName: users.lastName,
-      role: users.role,
       isActive: users.isActive,
       emailVerified: users.emailVerified,
       createdAt: users.createdAt,
@@ -114,7 +111,6 @@ export const userRepository = {
     passwordHash: string;
     firstName: string;
     lastName: string;
-    role: UserRole;
     isActive: boolean;
     emailVerified: boolean;
   }) {
@@ -139,7 +135,6 @@ export const userRepository = {
       email: string;
       firstName: string;
       lastName: string;
-      role: UserRole;
       isActive: boolean;
       emailVerified: boolean;
     }>

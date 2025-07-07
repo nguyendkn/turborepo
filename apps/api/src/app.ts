@@ -13,7 +13,7 @@ import { requestLogger } from '@/middleware/request-logger';
 import { apiRoutes } from '@/routes';
 import { docsRoutes } from '@/routes/docs';
 import { healthRoutes } from '@/routes/health';
-import type { AppEnv } from '@/types/app';
+import type { AppEnv } from '@/types';
 
 /**
  * Create and configure the Hono application

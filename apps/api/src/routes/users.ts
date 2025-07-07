@@ -1,61 +1,24 @@
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
-import { z } from 'zod';
 
+import { roleController } from '@/controllers/role.controller';
 import { userController } from '@/controllers/user.controller';
-import { requireRole, requirePermission } from '@/middleware/auth';
-import { UserRole } from '@/types/app';
-import type { AppEnv } from '@/types/app';
+import { authMiddleware } from '@/middleware/auth';
+import { requirePermission } from '@/middleware/pbac-auth';
+import {
+  userQuerySchema,
+  createUserSchema,
+  updateUserSchema,
+} from '@/schemas/user.schemas';
+import type { AppEnv } from '@/types';
 
 /**
  * User management routes
  */
 export const userRoutes = new Hono<AppEnv>();
 
-/**
- * Query parameters validation schema
- */
-const querySchema = z.object({
-  page: z.string().transform(Number).pipe(z.number().min(1)).optional(),
-  limit: z
-    .string()
-    .transform(Number)
-    .pipe(z.number().min(1).max(100))
-    .optional(),
-  search: z.string().optional(),
-  role: z.nativeEnum(UserRole).optional(),
-  isActive: z
-    .string()
-    .transform(val => val === 'true')
-    .optional(),
-  sortBy: z
-    .enum(['createdAt', 'updatedAt', 'email', 'firstName', 'lastName'])
-    .optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional(),
-});
-
-/**
- * Create user validation schema
- */
-const createUserSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  role: z.nativeEnum(UserRole).optional(),
-  isActive: z.boolean().optional(),
-});
-
-/**
- * Update user validation schema
- */
-const updateUserSchema = z.object({
-  email: z.string().email('Invalid email format').optional(),
-  firstName: z.string().min(1, 'First name is required').optional(),
-  lastName: z.string().min(1, 'Last name is required').optional(),
-  role: z.nativeEnum(UserRole).optional(),
-  isActive: z.boolean().optional(),
-});
+// Apply authentication to all user routes
+userRoutes.use('*', authMiddleware);
 
 /**
  * GET /users
@@ -63,8 +26,8 @@ const updateUserSchema = z.object({
  */
 userRoutes.get(
   '/',
-  requirePermission('users:read'),
-  zValidator('query', querySchema),
+  requirePermission('read', 'users'),
+  zValidator('query', userQuerySchema),
   userController.getUsers
 );
 
@@ -74,7 +37,7 @@ userRoutes.get(
  */
 userRoutes.get(
   '/:id',
-  requirePermission('users:read'),
+  requirePermission('read', 'users'),
   userController.getUserById
 );
 
@@ -84,7 +47,7 @@ userRoutes.get(
  */
 userRoutes.post(
   '/',
-  requireRole(UserRole.ADMIN),
+  requirePermission('create', 'users'),
   zValidator('json', createUserSchema),
   userController.createUser
 );
@@ -95,7 +58,7 @@ userRoutes.post(
  */
 userRoutes.put(
   '/:id',
-  requirePermission('users:write'),
+  requirePermission('update', 'users'),
   zValidator('json', updateUserSchema),
   userController.updateUser
 );
@@ -106,7 +69,7 @@ userRoutes.put(
  */
 userRoutes.delete(
   '/:id',
-  requireRole(UserRole.ADMIN),
+  requirePermission('delete', 'users'),
   userController.deleteUser
 );
 
@@ -116,7 +79,7 @@ userRoutes.delete(
  */
 userRoutes.post(
   '/:id/activate',
-  requireRole(UserRole.ADMIN),
+  requirePermission('activate', 'users'),
   userController.activateUser
 );
 
@@ -126,7 +89,7 @@ userRoutes.post(
  */
 userRoutes.post(
   '/:id/deactivate',
-  requireRole(UserRole.ADMIN),
+  requirePermission('deactivate', 'users'),
   userController.deactivateUser
 );
 
@@ -136,6 +99,16 @@ userRoutes.post(
  */
 userRoutes.post(
   '/:id/reset-password',
-  requireRole(UserRole.ADMIN),
+  requirePermission('reset-password', 'users'),
   userController.resetUserPassword
+);
+
+/**
+ * GET /users/:userId/roles
+ * Get roles for a specific user
+ */
+userRoutes.get(
+  '/:userId/roles',
+  requirePermission('read', 'user-roles'),
+  roleController.getUserRoles
 );

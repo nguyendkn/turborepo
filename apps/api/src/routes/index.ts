@@ -1,9 +1,12 @@
 import { Hono } from 'hono';
 
 import { authRoutes } from '@/routes/auth';
+import { permissionRoutes } from '@/routes/permissions';
+import { policyRoutes } from '@/routes/policies';
 import { profileRoutes } from '@/routes/profile';
+import { roleRoutes } from '@/routes/roles';
 import { userRoutes } from '@/routes/users';
-import type { AppEnv } from '@/types/app';
+import type { AppEnv } from '@/types';
 
 /**
  * Main API routes
@@ -17,6 +20,9 @@ const v1Routes = new Hono<AppEnv>();
 v1Routes.route('/auth', authRoutes);
 v1Routes.route('/users', userRoutes);
 v1Routes.route('/profile', profileRoutes);
+v1Routes.route('/roles', roleRoutes);
+v1Routes.route('/policies', policyRoutes);
+v1Routes.route('/permissions', permissionRoutes);
 
 // Mount versioned routes
 apiRoutes.route('/v1', v1Routes);

@@ -1,8 +1,8 @@
 import type { ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
-import { ErrorCode } from '@/types/app';
-import type { AppEnv, ApiResponse } from '@/types/app';
+import { ErrorCode } from '@/types';
+import type { AppEnv, ApiResponse } from '@/types';
 import { logger } from '@/utils/logger';
 
 /**

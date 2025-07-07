@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from 'hono';
 import { v4 as uuidv4 } from 'uuid';
 
-import type { AppEnv } from '@/types/app';
+import type { AppEnv } from '@/types';
 import { logRequest } from '@/utils/logger';
 
 /**

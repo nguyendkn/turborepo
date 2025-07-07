@@ -3,8 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { config } from '@/config/app';
 import { userRepository } from '@/repositories/user.repository';
-import { UserRole } from '@/types/app';
-import type { PaginationParams, FilterParams, SortParams } from '@/types/app';
+import type { PaginationParams, FilterParams, SortParams } from '@/types';
 import { logger } from '@/utils/logger';
 import { generateRandomPassword } from '@/utils/password';
 
@@ -25,7 +24,7 @@ export const userService = {
 
     const filters: FilterParams = {};
     if (query.search) filters.search = query.search;
-    if (query.role) filters.role = query.role as UserRole;
+    // Role filtering removed - use PBAC system instead
     if (query.isActive === 'true') {
       filters.isActive = true;
     } else if (query.isActive === 'false') {
@@ -49,7 +48,6 @@ export const userService = {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role,
         isActive: user.isActive,
         emailVerified: user.emailVerified,
         lastLoginAt: user.lastLoginAt,
@@ -80,7 +78,6 @@ export const userService = {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
       isActive: user.isActive,
       emailVerified: user.emailVerified,
       lastLoginAt: user.lastLoginAt,
@@ -97,7 +94,7 @@ export const userService = {
     password: string;
     firstName: string;
     lastName: string;
-    role?: UserRole;
+    role?: string;
     isActive?: boolean;
   }) {
     // Check if user already exists
@@ -119,7 +116,7 @@ export const userService = {
       passwordHash,
       firstName: userData.firstName,
       lastName: userData.lastName,
-      role: userData.role || UserRole.USER,
+      // Role assignment handled by PBAC system
       isActive: userData.isActive ?? true,
       emailVerified: false,
     });
@@ -135,7 +132,6 @@ export const userService = {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
       isActive: user.isActive,
       emailVerified: user.emailVerified,
       createdAt: user.createdAt,
@@ -152,7 +148,7 @@ export const userService = {
       email?: string;
       firstName?: string;
       lastName?: string;
-      role?: UserRole;
+      role?: string;
       isActive?: boolean;
     }
   ) {
@@ -183,7 +179,6 @@ export const userService = {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
       isActive: user.isActive,
       emailVerified: user.emailVerified,
       createdAt: user.createdAt,
@@ -225,7 +220,6 @@ export const userService = {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
       isActive: user.isActive,
       emailVerified: user.emailVerified,
       createdAt: user.createdAt,
@@ -250,7 +244,6 @@ export const userService = {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
       isActive: user.isActive,
       emailVerified: user.emailVerified,
       createdAt: user.createdAt,

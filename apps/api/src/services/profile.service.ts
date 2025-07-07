@@ -27,7 +27,6 @@ export const profileService = {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role,
       isActive: user.isActive,
       emailVerified: user.emailVerified,
       lastLoginAt: user.lastLoginAt,

@@ -4,7 +4,7 @@ import { RateLimiterRedis } from 'rate-limiter-flexible';
 
 import { config } from '@/config/app';
 import { getRedisClient } from '@/config/redis';
-import type { AppEnv } from '@/types/app';
+import type { AppEnv } from '@/types';
 import { logger } from '@/utils/logger';
 
 /**
