@@ -2,10 +2,7 @@ name: Build and Deploy Docker Images
 
 on:
   push:
-    branches: [ main, develop ]
     tags: [ 'v*' ]
-  pull_request:
-    branches: [ main ]
 
 env:
   REGISTRY: ghcr.io
@@ -39,12 +36,9 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}
         tags: |
-          type=ref,event=branch
-          type=ref,event=pr
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
-          type=sha,prefix={{branch}}-
 
     - name: Build and push API Docker image
       uses: docker/build-push-action@v5
@@ -84,12 +78,9 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WEB }}
         tags: |
-          type=ref,event=branch
-          type=ref,event=pr
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
-          type=sha,prefix={{branch}}-
 
     - name: Build and push Web Docker image
       uses: docker/build-push-action@v5
@@ -106,7 +97,6 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     needs: [build-api, build-web]
-    if: github.event_name != 'pull_request'
     permissions:
       contents: read
       packages: read
@@ -129,3 +119,46 @@ jobs:
       if: always()
       with:
         sarif_file: 'trivy-results.sarif'
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build-api, build-web, security-scan]
+    permissions:
+      contents: write
+      packages: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Extract version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        release_name: Release ${{ steps.version.outputs.VERSION }}
+        body: |
+          ## Docker Images
+
+          This release includes the following Docker images:
+
+          ### API Image
+          ```
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_API }}:${{ steps.version.outputs.VERSION }}
+          ```
+
+          ### Web Image
+          ```
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_WEB }}:${{ steps.version.outputs.VERSION }}
+          ```
+
+          ## Changes
+
+          Please see the commit history for detailed changes in this release.
+        draft: false
+        prerelease: ${{ contains(steps.version.outputs.VERSION, '-') }}
