@@ -1,40 +1,35 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useStore } from '@tanstack/react-store';
+import { useEffect } from 'react';
 
-import logo from '../logo.svg';
+import { authStore, authSelectors } from '../store';
 
 export const Route = createFileRoute('/')({
-  component: App,
+  component: IndexPage,
 });
 
-function App() {
+function IndexPage() {
+  const navigate = useNavigate();
+  const isAuthenticated = useStore(authStore, authSelectors.isAuthenticated);
+  const isLoading = useStore(authStore, authSelectors.isLoading);
+
+  useEffect(() => {
+    if (!isLoading) {
+      if (isAuthenticated) {
+        navigate({ to: '/dashboard' });
+      } else {
+        navigate({ to: '/auth/login', search: { redirect: '' } });
+      }
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
+  // Show loading while determining authentication status
   return (
-    <div className='text-center'>
-      <header className='min-h-screen flex flex-col items-center justify-center bg-[#282c34] text-white text-[calc(10px+2vmin)]'>
-        <img
-          src={logo}
-          className='h-[40vmin] pointer-events-none animate-[spin_20s_linear_infinite]'
-          alt='logo'
-        />
-        <p>
-          Edit <code>src/routes/index.tsx</code> and save to reload.
-        </p>
-        <a
-          className='text-[#61dafb] hover:underline'
-          href='https://reactjs.org'
-          target='_blank'
-          rel='noopener noreferrer'
-        >
-          Learn React
-        </a>
-        <a
-          className='text-[#61dafb] hover:underline'
-          href='https://tanstack.com'
-          target='_blank'
-          rel='noopener noreferrer'
-        >
-          Learn TanStack
-        </a>
-      </header>
+    <div className='min-h-screen flex items-center justify-center bg-gray-50'>
+      <div className='text-center'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto'></div>
+        <p className='mt-4 text-gray-600'>Loading...</p>
+      </div>
     </div>
   );
 }

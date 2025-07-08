@@ -13,13 +13,22 @@
     "format": "echo 'Formatting is now handled at the root level. Run: pnpm format from root.'"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.1.1",
     "@tailwindcss/vite": "^4.0.6",
+    "@tanstack/react-form": "^1.14.0",
+    "@tanstack/react-query": "^5.81.5",
+    "@tanstack/react-query-devtools": "^5.81.5",
     "@tanstack/react-router": "^1.121.2",
     "@tanstack/react-router-devtools": "^1.121.2",
+    "@tanstack/react-store": "^0.7.3",
+    "@tanstack/react-table": "^8.21.3",
     "@tanstack/router-plugin": "^1.121.2",
+    "@tanstack/zod-form-adapter": "^0.42.1",
+    "axios": "^1.10.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tailwindcss": "^4.0.6"
+    "tailwindcss": "^4.0.6",
+    "zod": "^3.25.74"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",

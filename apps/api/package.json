@@ -28,6 +28,9 @@
     "docker:run": "docker run -p 3000:3000 csmart-api",
     "db:migrate": "bun run src/scripts/migrate.ts",
     "db:seed": "bun run src/scripts/seed.ts",
+    "db:seed-data": "bun run src/scripts/seed-data.ts",
+    "db:seed-data:reset": "bun run src/scripts/seed-data.ts --reset",
+    "db:seed-data:help": "bun run src/scripts/seed-data.ts --help",
     "docs:generate": "swagger-jsdoc -d src/docs/swagger.config.ts -o docs/api.json src/**/*.ts"
   },
   "dependencies": {

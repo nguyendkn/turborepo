@@ -9,38 +9,302 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UsersRouteImport } from './routes/users'
+import { Route as UnauthorizedRouteImport } from './routes/unauthorized'
+import { Route as RolesRouteImport } from './routes/roles'
+import { Route as PoliciesRouteImport } from './routes/policies'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RolesIndexRouteImport } from './routes/roles/index'
+import { Route as PoliciesIndexRouteImport } from './routes/policies/index'
+import { Route as UsersCreateRouteImport } from './routes/users/create'
+import { Route as RolesCreateRouteImport } from './routes/roles/create'
+import { Route as RolesRoleIdRouteImport } from './routes/roles/$roleId'
+import { Route as PoliciesCreateRouteImport } from './routes/policies/create'
+import { Route as PoliciesPolicyIdRouteImport } from './routes/policies/$policyId'
+import { Route as AuthRegisterRouteImport } from './routes/auth/register'
+import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as UsersUserIdEditRouteImport } from './routes/users/$userId/edit'
+import { Route as RolesRoleIdEditRouteImport } from './routes/roles/$roleId/edit'
+import { Route as PoliciesPolicyIdEditRouteImport } from './routes/policies/$policyId/edit'
 
+const UsersRoute = UsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnauthorizedRoute = UnauthorizedRouteImport.update({
+  id: '/unauthorized',
+  path: '/unauthorized',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RolesRoute = RolesRouteImport.update({
+  id: '/roles',
+  path: '/roles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliciesRoute = PoliciesRouteImport.update({
+  id: '/policies',
+  path: '/policies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RolesIndexRoute = RolesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => RolesRoute,
+} as any)
+const PoliciesIndexRoute = PoliciesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PoliciesRoute,
+} as any)
+const UsersCreateRoute = UsersCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => UsersRoute,
+} as any)
+const RolesCreateRoute = RolesCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => RolesRoute,
+} as any)
+const RolesRoleIdRoute = RolesRoleIdRouteImport.update({
+  id: '/$roleId',
+  path: '/$roleId',
+  getParentRoute: () => RolesRoute,
+} as any)
+const PoliciesCreateRoute = PoliciesCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => PoliciesRoute,
+} as any)
+const PoliciesPolicyIdRoute = PoliciesPolicyIdRouteImport.update({
+  id: '/$policyId',
+  path: '/$policyId',
+  getParentRoute: () => PoliciesRoute,
+} as any)
+const AuthRegisterRoute = AuthRegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+const UsersUserIdEditRoute = UsersUserIdEditRouteImport.update({
+  id: '/$userId/edit',
+  path: '/$userId/edit',
+  getParentRoute: () => UsersRoute,
+} as any)
+const RolesRoleIdEditRoute = RolesRoleIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => RolesRoleIdRoute,
+} as any)
+const PoliciesPolicyIdEditRoute = PoliciesPolicyIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => PoliciesPolicyIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/dashboard': typeof DashboardRoute
+  '/policies': typeof PoliciesRouteWithChildren
+  '/roles': typeof RolesRouteWithChildren
+  '/unauthorized': typeof UnauthorizedRoute
+  '/users': typeof UsersRouteWithChildren
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/policies/$policyId': typeof PoliciesPolicyIdRouteWithChildren
+  '/policies/create': typeof PoliciesCreateRoute
+  '/roles/$roleId': typeof RolesRoleIdRouteWithChildren
+  '/roles/create': typeof RolesCreateRoute
+  '/users/create': typeof UsersCreateRoute
+  '/policies/': typeof PoliciesIndexRoute
+  '/roles/': typeof RolesIndexRoute
+  '/policies/$policyId/edit': typeof PoliciesPolicyIdEditRoute
+  '/roles/$roleId/edit': typeof RolesRoleIdEditRoute
+  '/users/$userId/edit': typeof UsersUserIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/dashboard': typeof DashboardRoute
+  '/unauthorized': typeof UnauthorizedRoute
+  '/users': typeof UsersRouteWithChildren
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/policies/$policyId': typeof PoliciesPolicyIdRouteWithChildren
+  '/policies/create': typeof PoliciesCreateRoute
+  '/roles/$roleId': typeof RolesRoleIdRouteWithChildren
+  '/roles/create': typeof RolesCreateRoute
+  '/users/create': typeof UsersCreateRoute
+  '/policies': typeof PoliciesIndexRoute
+  '/roles': typeof RolesIndexRoute
+  '/policies/$policyId/edit': typeof PoliciesPolicyIdEditRoute
+  '/roles/$roleId/edit': typeof RolesRoleIdEditRoute
+  '/users/$userId/edit': typeof UsersUserIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/dashboard': typeof DashboardRoute
+  '/policies': typeof PoliciesRouteWithChildren
+  '/roles': typeof RolesRouteWithChildren
+  '/unauthorized': typeof UnauthorizedRoute
+  '/users': typeof UsersRouteWithChildren
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/policies/$policyId': typeof PoliciesPolicyIdRouteWithChildren
+  '/policies/create': typeof PoliciesCreateRoute
+  '/roles/$roleId': typeof RolesRoleIdRouteWithChildren
+  '/roles/create': typeof RolesCreateRoute
+  '/users/create': typeof UsersCreateRoute
+  '/policies/': typeof PoliciesIndexRoute
+  '/roles/': typeof RolesIndexRoute
+  '/policies/$policyId/edit': typeof PoliciesPolicyIdEditRoute
+  '/roles/$roleId/edit': typeof RolesRoleIdEditRoute
+  '/users/$userId/edit': typeof UsersUserIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/policies'
+    | '/roles'
+    | '/unauthorized'
+    | '/users'
+    | '/auth/login'
+    | '/auth/register'
+    | '/policies/$policyId'
+    | '/policies/create'
+    | '/roles/$roleId'
+    | '/roles/create'
+    | '/users/create'
+    | '/policies/'
+    | '/roles/'
+    | '/policies/$policyId/edit'
+    | '/roles/$roleId/edit'
+    | '/users/$userId/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/unauthorized'
+    | '/users'
+    | '/auth/login'
+    | '/auth/register'
+    | '/policies/$policyId'
+    | '/policies/create'
+    | '/roles/$roleId'
+    | '/roles/create'
+    | '/users/create'
+    | '/policies'
+    | '/roles'
+    | '/policies/$policyId/edit'
+    | '/roles/$roleId/edit'
+    | '/users/$userId/edit'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/policies'
+    | '/roles'
+    | '/unauthorized'
+    | '/users'
+    | '/auth/login'
+    | '/auth/register'
+    | '/policies/$policyId'
+    | '/policies/create'
+    | '/roles/$roleId'
+    | '/roles/create'
+    | '/users/create'
+    | '/policies/'
+    | '/roles/'
+    | '/policies/$policyId/edit'
+    | '/roles/$roleId/edit'
+    | '/users/$userId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRouteWithChildren
+  DashboardRoute: typeof DashboardRoute
+  PoliciesRoute: typeof PoliciesRouteWithChildren
+  RolesRoute: typeof RolesRouteWithChildren
+  UnauthorizedRoute: typeof UnauthorizedRoute
+  UsersRoute: typeof UsersRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/users': {
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unauthorized': {
+      id: '/unauthorized'
+      path: '/unauthorized'
+      fullPath: '/unauthorized'
+      preLoaderRoute: typeof UnauthorizedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roles': {
+      id: '/roles'
+      path: '/roles'
+      fullPath: '/roles'
+      preLoaderRoute: typeof RolesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/policies': {
+      id: '/policies'
+      path: '/policies'
+      fullPath: '/policies'
+      preLoaderRoute: typeof PoliciesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +312,178 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/roles/': {
+      id: '/roles/'
+      path: '/'
+      fullPath: '/roles/'
+      preLoaderRoute: typeof RolesIndexRouteImport
+      parentRoute: typeof RolesRoute
+    }
+    '/policies/': {
+      id: '/policies/'
+      path: '/'
+      fullPath: '/policies/'
+      preLoaderRoute: typeof PoliciesIndexRouteImport
+      parentRoute: typeof PoliciesRoute
+    }
+    '/users/create': {
+      id: '/users/create'
+      path: '/create'
+      fullPath: '/users/create'
+      preLoaderRoute: typeof UsersCreateRouteImport
+      parentRoute: typeof UsersRoute
+    }
+    '/roles/create': {
+      id: '/roles/create'
+      path: '/create'
+      fullPath: '/roles/create'
+      preLoaderRoute: typeof RolesCreateRouteImport
+      parentRoute: typeof RolesRoute
+    }
+    '/roles/$roleId': {
+      id: '/roles/$roleId'
+      path: '/$roleId'
+      fullPath: '/roles/$roleId'
+      preLoaderRoute: typeof RolesRoleIdRouteImport
+      parentRoute: typeof RolesRoute
+    }
+    '/policies/create': {
+      id: '/policies/create'
+      path: '/create'
+      fullPath: '/policies/create'
+      preLoaderRoute: typeof PoliciesCreateRouteImport
+      parentRoute: typeof PoliciesRoute
+    }
+    '/policies/$policyId': {
+      id: '/policies/$policyId'
+      path: '/$policyId'
+      fullPath: '/policies/$policyId'
+      preLoaderRoute: typeof PoliciesPolicyIdRouteImport
+      parentRoute: typeof PoliciesRoute
+    }
+    '/auth/register': {
+      id: '/auth/register'
+      path: '/register'
+      fullPath: '/auth/register'
+      preLoaderRoute: typeof AuthRegisterRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/users/$userId/edit': {
+      id: '/users/$userId/edit'
+      path: '/$userId/edit'
+      fullPath: '/users/$userId/edit'
+      preLoaderRoute: typeof UsersUserIdEditRouteImport
+      parentRoute: typeof UsersRoute
+    }
+    '/roles/$roleId/edit': {
+      id: '/roles/$roleId/edit'
+      path: '/edit'
+      fullPath: '/roles/$roleId/edit'
+      preLoaderRoute: typeof RolesRoleIdEditRouteImport
+      parentRoute: typeof RolesRoleIdRoute
+    }
+    '/policies/$policyId/edit': {
+      id: '/policies/$policyId/edit'
+      path: '/edit'
+      fullPath: '/policies/$policyId/edit'
+      preLoaderRoute: typeof PoliciesPolicyIdEditRouteImport
+      parentRoute: typeof PoliciesPolicyIdRoute
+    }
   }
 }
 
+interface AuthRouteChildren {
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthLoginRoute: AuthLoginRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
+interface PoliciesPolicyIdRouteChildren {
+  PoliciesPolicyIdEditRoute: typeof PoliciesPolicyIdEditRoute
+}
+
+const PoliciesPolicyIdRouteChildren: PoliciesPolicyIdRouteChildren = {
+  PoliciesPolicyIdEditRoute: PoliciesPolicyIdEditRoute,
+}
+
+const PoliciesPolicyIdRouteWithChildren =
+  PoliciesPolicyIdRoute._addFileChildren(PoliciesPolicyIdRouteChildren)
+
+interface PoliciesRouteChildren {
+  PoliciesPolicyIdRoute: typeof PoliciesPolicyIdRouteWithChildren
+  PoliciesCreateRoute: typeof PoliciesCreateRoute
+  PoliciesIndexRoute: typeof PoliciesIndexRoute
+}
+
+const PoliciesRouteChildren: PoliciesRouteChildren = {
+  PoliciesPolicyIdRoute: PoliciesPolicyIdRouteWithChildren,
+  PoliciesCreateRoute: PoliciesCreateRoute,
+  PoliciesIndexRoute: PoliciesIndexRoute,
+}
+
+const PoliciesRouteWithChildren = PoliciesRoute._addFileChildren(
+  PoliciesRouteChildren,
+)
+
+interface RolesRoleIdRouteChildren {
+  RolesRoleIdEditRoute: typeof RolesRoleIdEditRoute
+}
+
+const RolesRoleIdRouteChildren: RolesRoleIdRouteChildren = {
+  RolesRoleIdEditRoute: RolesRoleIdEditRoute,
+}
+
+const RolesRoleIdRouteWithChildren = RolesRoleIdRoute._addFileChildren(
+  RolesRoleIdRouteChildren,
+)
+
+interface RolesRouteChildren {
+  RolesRoleIdRoute: typeof RolesRoleIdRouteWithChildren
+  RolesCreateRoute: typeof RolesCreateRoute
+  RolesIndexRoute: typeof RolesIndexRoute
+}
+
+const RolesRouteChildren: RolesRouteChildren = {
+  RolesRoleIdRoute: RolesRoleIdRouteWithChildren,
+  RolesCreateRoute: RolesCreateRoute,
+  RolesIndexRoute: RolesIndexRoute,
+}
+
+const RolesRouteWithChildren = RolesRoute._addFileChildren(RolesRouteChildren)
+
+interface UsersRouteChildren {
+  UsersCreateRoute: typeof UsersCreateRoute
+  UsersUserIdEditRoute: typeof UsersUserIdEditRoute
+}
+
+const UsersRouteChildren: UsersRouteChildren = {
+  UsersCreateRoute: UsersCreateRoute,
+  UsersUserIdEditRoute: UsersUserIdEditRoute,
+}
+
+const UsersRouteWithChildren = UsersRoute._addFileChildren(UsersRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRouteWithChildren,
+  DashboardRoute: DashboardRoute,
+  PoliciesRoute: PoliciesRouteWithChildren,
+  RolesRoute: RolesRouteWithChildren,
+  UnauthorizedRoute: UnauthorizedRoute,
+  UsersRoute: UsersRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

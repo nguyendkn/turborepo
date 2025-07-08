@@ -4,8 +4,8 @@ import * as jwt from 'jsonwebtoken';
 
 import { config } from '@/config/app';
 import { userRepository } from '@/repositories/user.repository';
-import { roleService } from '@/services/role.service';
 import { permissionEvaluatorService } from '@/services/permission-evaluator.service';
+import { roleService } from '@/services/role.service';
 import type { JwtPayload, RefreshTokenPayload } from '@/types';
 import { logger } from '@/utils/logger';
 

@@ -1,8 +1,8 @@
 import type { Handler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
-import { roleService } from '@/services/role.service';
 import { permissionEvaluatorService } from '@/services/permission-evaluator.service';
+import { roleService } from '@/services/role.service';
 import type { AppEnv, ApiResponse } from '@/types';
 import { logger } from '@/utils/logger';
 
