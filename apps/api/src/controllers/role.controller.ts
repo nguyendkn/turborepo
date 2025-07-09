@@ -21,7 +21,9 @@ export const roleController = {
       const page = parseInt(query.page || '1');
       const limit = parseInt(query.limit || '20');
       const includeInactive = query.includeInactive === 'true';
-      const systemRolesOnly = query.systemRolesOnly ? query.systemRolesOnly === 'true' : undefined;
+      const systemRolesOnly = query.systemRolesOnly
+        ? query.systemRolesOnly === 'true'
+        : undefined;
 
       const result = await roleService.getRoles({
         page,
@@ -83,7 +85,9 @@ export const roleController = {
       }
 
       if (!roleData.policyIds || !Array.isArray(roleData.policyIds)) {
-        throw new HTTPException(400, { message: 'Policy IDs array is required' });
+        throw new HTTPException(400, {
+          message: 'Policy IDs array is required',
+        });
       }
 
       const role = await roleService.createRole({
@@ -171,7 +175,9 @@ export const roleController = {
         throw new HTTPException(400, { message: 'User ID is required' });
       }
 
-      const expiresAt = assignmentData.expiresAt ? new Date(assignmentData.expiresAt) : undefined;
+      const expiresAt = assignmentData.expiresAt
+        ? new Date(assignmentData.expiresAt)
+        : undefined;
 
       await roleService.assignRoleToUser(
         assignmentData.userId,

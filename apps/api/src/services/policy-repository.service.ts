@@ -14,7 +14,21 @@ export class PolicyRepositoryService {
   /**
    * Convert database policy result to Policy interface
    */
-  private convertToPolicy(dbPolicy: any): Policy {
+  private convertToPolicy(dbPolicy: {
+    id: string;
+    name: string;
+    description?: string;
+    version: number;
+    isActive: boolean;
+    conditions: unknown;
+    actions: unknown;
+    resources: unknown;
+    effect: 'allow' | 'deny';
+    priority: number;
+    createdAt: Date;
+    updatedAt: Date;
+    createdBy?: string;
+  }): Policy {
     const result: Policy = {
       id: dbPolicy.id,
       name: dbPolicy.name,
@@ -90,15 +104,17 @@ export class PolicyRepositoryService {
   /**
    * Get all policies with filtering and pagination
    */
-  async getPolicies(options: {
-    page?: number;
-    limit?: number;
-    includeInactive?: boolean;
-    effect?: 'allow' | 'deny';
-    search?: string;
-    sortBy?: 'name' | 'priority' | 'createdAt' | 'updatedAt';
-    sortOrder?: 'asc' | 'desc';
-  } = {}): Promise<{
+  async getPolicies(
+    options: {
+      page?: number;
+      limit?: number;
+      includeInactive?: boolean;
+      effect?: 'allow' | 'deny';
+      search?: string;
+      sortBy?: 'name' | 'priority' | 'createdAt' | 'updatedAt';
+      sortOrder?: 'asc' | 'desc';
+    } = {}
+  ): Promise<{
     policies: Policy[];
     page: number;
     limit: number;
@@ -139,20 +155,26 @@ export class PolicyRepositoryService {
       const orderByFn = sortOrder === 'asc' ? asc : desc;
 
       // Get policies
-      const whereCondition = conditions.length === 0 ? undefined :
-        conditions.length === 1 ? conditions[0] : and(...conditions);
+      const whereCondition =
+        conditions.length === 0
+          ? undefined
+          : conditions.length === 1
+            ? conditions[0]
+            : and(...conditions);
 
       const query = db.select().from(policies);
-      const policyResults = await (whereCondition ?
-        query.where(whereCondition) : query)
+      const policyResults = await (
+        whereCondition ? query.where(whereCondition) : query
+      )
         .orderBy(orderByFn(orderByColumn))
         .limit(limit)
         .offset(offset);
 
       // Get total count
       const countQuery = db.select({ count: policies.id }).from(policies);
-      const countResult = await (whereCondition ?
-        countQuery.where(whereCondition) : countQuery);
+      const countResult = await (whereCondition
+        ? countQuery.where(whereCondition)
+        : countQuery);
       const count = countResult[0]?.count || '0';
 
       return {
@@ -206,16 +228,19 @@ export class PolicyRepositoryService {
   /**
    * Update policy
    */
-  async updatePolicy(id: string, updates: {
-    name?: string;
-    description?: string;
-    conditions?: PolicyConditions;
-    actions?: string[];
-    resources?: string[];
-    effect?: 'allow' | 'deny';
-    priority?: number;
-    isActive?: boolean;
-  }): Promise<Policy> {
+  async updatePolicy(
+    id: string,
+    updates: {
+      name?: string;
+      description?: string;
+      conditions?: PolicyConditions;
+      actions?: string[];
+      resources?: string[];
+      effect?: 'allow' | 'deny';
+      priority?: number;
+      isActive?: boolean;
+    }
+  ): Promise<Policy> {
     try {
       // Check if policy exists
       const existingPolicy = await this.getPolicyById(id);
@@ -232,20 +257,37 @@ export class PolicyRepositoryService {
           .limit(1);
 
         if (conflictingPolicy) {
-          throw new HTTPException(409, { message: 'Policy name already exists' });
+          throw new HTTPException(409, {
+            message: 'Policy name already exists',
+          });
         }
       }
 
       // Build update data
-      const updateData: any = {};
+      const updateData: Partial<{
+        name: string;
+        description: string;
+        conditions: PolicyConditions;
+        actions: string[];
+        resources: string[];
+        effect: 'allow' | 'deny';
+        priority: number;
+        isActive: boolean;
+        updatedAt: Date;
+      }> = {};
       if (updates.name !== undefined) updateData.name = updates.name;
-      if (updates.description !== undefined) updateData.description = updates.description;
-      if (updates.conditions !== undefined) updateData.conditions = updates.conditions;
+      if (updates.description !== undefined)
+        updateData.description = updates.description;
+      if (updates.conditions !== undefined)
+        updateData.conditions = updates.conditions;
       if (updates.actions !== undefined) updateData.actions = updates.actions;
-      if (updates.resources !== undefined) updateData.resources = updates.resources;
+      if (updates.resources !== undefined)
+        updateData.resources = updates.resources;
       if (updates.effect !== undefined) updateData.effect = updates.effect;
-      if (updates.priority !== undefined) updateData.priority = updates.priority;
-      if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
+      if (updates.priority !== undefined)
+        updateData.priority = updates.priority;
+      if (updates.isActive !== undefined)
+        updateData.isActive = updates.isActive;
 
       // Increment version
       updateData.version = existingPolicy.version + 1;
@@ -310,7 +352,9 @@ export class PolicyRepositoryService {
       if (error instanceof HTTPException) {
         throw error;
       }
-      throw new HTTPException(500, { message: 'Failed to toggle policy status' });
+      throw new HTTPException(500, {
+        message: 'Failed to toggle policy status',
+      });
     }
   }
 }

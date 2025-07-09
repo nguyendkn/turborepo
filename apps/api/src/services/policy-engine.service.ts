@@ -36,7 +36,10 @@ export class PolicyEngineService {
     }
 
     // Check if action matches
-    const actionMatches = this.matchesAction(policy.actions, context.request.action);
+    const actionMatches = this.matchesAction(
+      policy.actions,
+      context.request.action
+    );
     if (!actionMatches) {
       return {
         allowed: false,
@@ -48,7 +51,10 @@ export class PolicyEngineService {
     }
 
     // Check if resource matches
-    const resourceMatches = this.matchesResource(policy.resources, context.request.resource);
+    const resourceMatches = this.matchesResource(
+      policy.resources,
+      context.request.resource
+    );
     if (!resourceMatches) {
       return {
         allowed: false,
@@ -60,7 +66,10 @@ export class PolicyEngineService {
     }
 
     // Evaluate conditions
-    const conditionResult = await this.evaluateConditions(policy.conditions, context);
+    const conditionResult = await this.evaluateConditions(
+      policy.conditions,
+      context
+    );
     if (!conditionResult.matches) {
       return {
         allowed: false,
@@ -84,7 +93,10 @@ export class PolicyEngineService {
   /**
    * Check if action matches policy actions
    */
-  private matchesAction(policyActions: string[], requestAction: string): boolean {
+  private matchesAction(
+    policyActions: string[],
+    requestAction: string
+  ): boolean {
     return policyActions.some(action => {
       // Support wildcards
       if (action === '*') return true;
@@ -99,7 +111,10 @@ export class PolicyEngineService {
   /**
    * Check if resource matches policy resources
    */
-  private matchesResource(policyResources: string[], requestResource: string): boolean {
+  private matchesResource(
+    policyResources: string[],
+    requestResource: string
+  ): boolean {
     return policyResources.some(resource => {
       // Support wildcards
       if (resource === '*') return true;
@@ -123,11 +138,14 @@ export class PolicyEngineService {
     matchedConditions: string[];
   }> {
     const matchedConditions: string[] = [];
-    
+
     try {
       // User conditions
       if (conditions.user) {
-        const userConditionResult = this.evaluateUserConditions(conditions.user, context);
+        const userConditionResult = this.evaluateUserConditions(
+          conditions.user,
+          context
+        );
         if (!userConditionResult.matches) {
           return {
             matches: false,
@@ -140,7 +158,10 @@ export class PolicyEngineService {
 
       // Resource conditions
       if (conditions.resource) {
-        const resourceConditionResult = this.evaluateResourceConditions(conditions.resource, context);
+        const resourceConditionResult = this.evaluateResourceConditions(
+          conditions.resource,
+          context
+        );
         if (!resourceConditionResult.matches) {
           return {
             matches: false,
@@ -153,7 +174,10 @@ export class PolicyEngineService {
 
       // Environment conditions
       if (conditions.environment) {
-        const envConditionResult = await this.evaluateEnvironmentConditions(conditions.environment, context);
+        const envConditionResult = await this.evaluateEnvironmentConditions(
+          conditions.environment,
+          context
+        );
         if (!envConditionResult.matches) {
           return {
             matches: false,
@@ -183,13 +207,15 @@ export class PolicyEngineService {
    * Evaluate user-specific conditions
    */
   private evaluateUserConditions(
-    userConditions: any,
+    userConditions: NonNullable<PolicyConditions['user']>,
     context: PolicyEvaluationContext
   ): { matches: boolean; reason: string; matchedConditions: string[] } {
     const matchedConditions: string[] = [];
 
     if (userConditions.attributes) {
-      for (const [key, expectedValue] of Object.entries(userConditions.attributes)) {
+      for (const [key, expectedValue] of Object.entries(
+        userConditions.attributes
+      )) {
         const actualValue = context.user.attributes?.[key];
         if (actualValue !== expectedValue) {
           return {
@@ -213,13 +239,15 @@ export class PolicyEngineService {
    * Evaluate resource-specific conditions
    */
   private evaluateResourceConditions(
-    resourceConditions: any,
+    resourceConditions: NonNullable<PolicyConditions['resource']>,
     context: PolicyEvaluationContext
   ): { matches: boolean; reason: string; matchedConditions: string[] } {
     const matchedConditions: string[] = [];
 
     if (resourceConditions.attributes) {
-      for (const [key, expectedValue] of Object.entries(resourceConditions.attributes)) {
+      for (const [key, expectedValue] of Object.entries(
+        resourceConditions.attributes
+      )) {
         const actualValue = context.resource.attributes?.[key];
         if (actualValue !== expectedValue) {
           return {
@@ -243,9 +271,13 @@ export class PolicyEngineService {
    * Evaluate environment-specific conditions
    */
   private async evaluateEnvironmentConditions(
-    envConditions: any,
+    envConditions: NonNullable<PolicyConditions['environment']>,
     context: PolicyEvaluationContext
-  ): Promise<{ matches: boolean; reason: string; matchedConditions: string[] }> {
+  ): Promise<{
+    matches: boolean;
+    reason: string;
+    matchedConditions: string[];
+  }> {
     const matchedConditions: string[] = [];
 
     // Time range conditions
@@ -275,7 +307,9 @@ export class PolicyEngineService {
     // IP whitelist/blacklist
     if (context.environment.ipAddress) {
       if (envConditions.ipWhitelist && envConditions.ipWhitelist.length > 0) {
-        if (!envConditions.ipWhitelist.includes(context.environment.ipAddress)) {
+        if (
+          !envConditions.ipWhitelist.includes(context.environment.ipAddress)
+        ) {
           return {
             matches: false,
             reason: 'IP address not in whitelist',

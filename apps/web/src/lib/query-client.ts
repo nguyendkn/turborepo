@@ -20,7 +20,11 @@ const defaultQueryOptions = {
       const errorWithStatus = error as unknown as { status?: number };
 
       // Don't retry on 4xx errors (client errors)
-      if (errorWithStatus.status && errorWithStatus.status >= 400 && errorWithStatus.status < 500) {
+      if (
+        errorWithStatus.status &&
+        errorWithStatus.status >= 400 &&
+        errorWithStatus.status < 500
+      ) {
         return false;
       }
       // Retry up to 3 times for other errors

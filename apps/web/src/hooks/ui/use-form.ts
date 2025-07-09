@@ -243,7 +243,16 @@ export const useForm = <T extends object = Record<string, unknown>>({
  * Form field helper hook
  */
 export const useFormField = (
-  form: { useField: (config: { name: string; validators?: Record<string, unknown> }) => { state: { meta: { errors?: string[]; isDirty: boolean; isTouched: boolean } } } },
+  form: {
+    useField: (config: {
+      name: string;
+      validators?: Record<string, unknown>;
+    }) => {
+      state: {
+        meta: { errors?: string[]; isDirty: boolean; isTouched: boolean };
+      };
+    };
+  },
   name: string,
   options?: {
     validateOnChange?: boolean;

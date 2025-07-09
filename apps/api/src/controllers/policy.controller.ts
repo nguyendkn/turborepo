@@ -22,7 +22,12 @@ export const policyController = {
       const includeInactive = query.includeInactive === 'true';
       const effect = query.effect as 'allow' | 'deny' | undefined;
       const search = query.search;
-      const sortBy = query.sortBy as 'name' | 'priority' | 'createdAt' | 'updatedAt' | undefined;
+      const sortBy = query.sortBy as
+        | 'name'
+        | 'priority'
+        | 'createdAt'
+        | 'updatedAt'
+        | undefined;
       const sortOrder = query.sortOrder as 'asc' | 'desc' | undefined;
 
       const result = await policyRepositoryService.getPolicies({
@@ -96,12 +101,24 @@ export const policyController = {
         throw new HTTPException(400, { message: 'Policy name is required' });
       }
 
-      if (!policyData.actions || !Array.isArray(policyData.actions) || policyData.actions.length === 0) {
-        throw new HTTPException(400, { message: 'Actions array is required and must not be empty' });
+      if (
+        !policyData.actions ||
+        !Array.isArray(policyData.actions) ||
+        policyData.actions.length === 0
+      ) {
+        throw new HTTPException(400, {
+          message: 'Actions array is required and must not be empty',
+        });
       }
 
-      if (!policyData.resources || !Array.isArray(policyData.resources) || policyData.resources.length === 0) {
-        throw new HTTPException(400, { message: 'Resources array is required and must not be empty' });
+      if (
+        !policyData.resources ||
+        !Array.isArray(policyData.resources) ||
+        policyData.resources.length === 0
+      ) {
+        throw new HTTPException(400, {
+          message: 'Resources array is required and must not be empty',
+        });
       }
 
       const policy = await policyRepositoryService.createPolicy({
@@ -190,7 +207,10 @@ export const policyController = {
         throw new HTTPException(400, { message: 'isActive must be a boolean' });
       }
 
-      const policy = await policyRepositoryService.togglePolicyStatus(id, isActive);
+      const policy = await policyRepositoryService.togglePolicyStatus(
+        id,
+        isActive
+      );
 
       const response: ApiResponse = {
         success: true,

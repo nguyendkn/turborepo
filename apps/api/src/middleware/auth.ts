@@ -33,7 +33,9 @@ export const authMiddleware: MiddlewareHandler<AppEnv> = async (c, next) => {
     }
 
     // Get user roles from PBAC system
-    const userRoles = await permissionEvaluatorService.getUserRoles(payload.sub);
+    const userRoles = await permissionEvaluatorService.getUserRoles(
+      payload.sub
+    );
 
     const user: User = {
       id: dbUser.id,

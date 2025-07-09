@@ -2,14 +2,18 @@
 
 ## Overview
 
-This document describes the Policy-Based Access Control (PBAC) system that replaces the traditional Role-Based Access Control (RBAC) approach. PBAC provides more flexible, fine-grained permission management through dynamic policies and roles.
+This document describes the Policy-Based Access Control (PBAC) system that replaces the traditional
+Role-Based Access Control (RBAC) approach. PBAC provides more flexible, fine-grained permission
+management through dynamic policies and roles.
 
 ## Key Concepts
 
 ### 1. Policies
+
 Policies define what actions can be performed on what resources under specific conditions.
 
 **Structure:**
+
 - **Actions**: What operations can be performed (e.g., `read`, `write`, `delete`, `*`)
 - **Resources**: What entities the actions apply to (e.g., `users`, `posts`, `*`)
 - **Effect**: Whether to `allow` or `deny` access
@@ -17,16 +21,20 @@ Policies define what actions can be performed on what resources under specific c
 - **Priority**: Higher priority policies are evaluated first
 
 ### 2. Roles
+
 Roles are dynamic collections of policies that can be assigned to users.
 
 **Features:**
+
 - Dynamic creation and modification
 - Policy-based composition
 - System vs. custom roles
 - Expiration support
 
 ### 3. Permission Evaluation
+
 The system evaluates permissions by:
+
 1. Collecting all policies from user's roles
 2. Sorting by priority (highest first)
 3. Applying deny-first logic
@@ -100,6 +108,7 @@ The system evaluates permissions by:
 ## API Endpoints
 
 ### Policy Management
+
 ```
 GET    /v1/policies              # List policies
 POST   /v1/policies              # Create policy
@@ -110,6 +119,7 @@ PATCH  /v1/policies/:id/status   # Toggle policy status
 ```
 
 ### Role Management
+
 ```
 GET    /v1/roles                 # List roles
 POST   /v1/roles                 # Create role
@@ -121,6 +131,7 @@ DELETE /v1/roles/:id/assign/:userId # Remove role from user
 ```
 
 ### Permission Evaluation
+
 ```
 POST   /v1/permissions/check           # Check single permission
 POST   /v1/permissions/evaluate        # Detailed evaluation
@@ -141,14 +152,14 @@ const policy = await policyRepositoryService.createPolicy({
     environment: {
       timeRange: {
         start: '09:00',
-        end: '17:00'
-      }
-    }
+        end: '17:00',
+      },
+    },
   },
   actions: ['read'],
   resources: ['users'],
   effect: 'allow',
-  priority: 100
+  priority: 100,
 });
 ```
 
@@ -159,7 +170,7 @@ const role = await roleManagerService.createRole({
   name: 'Content Manager',
   description: 'Can manage content and moderate users',
   policyIds: ['policy-1', 'policy-2', 'policy-3'],
-  isSystemRole: false
+  isSystemRole: false,
 });
 ```
 
@@ -172,11 +183,11 @@ const hasPermission = await permissionEvaluatorService.hasPermission(
   {
     action: 'delete',
     resource: 'posts',
-    resourceId: 'post-123'
+    resourceId: 'post-123',
   },
   {
     ipAddress: '192.168.1.100',
-    userAgent: 'Mozilla/5.0...'
+    userAgent: 'Mozilla/5.0...',
   }
 );
 ```
@@ -185,25 +196,24 @@ const hasPermission = await permissionEvaluatorService.hasPermission(
 
 ```typescript
 // Require specific permission
-app.get('/users', 
-  requirePermission('read', 'users'),
-  userController.getUsers
-);
+app.get('/users', requirePermission('read', 'users'), userController.getUsers);
 
 // Allow self-access
-app.get('/users/:id',
+app.get(
+  '/users/:id',
   requirePermission('read', 'users', {
     allowSelfAccess: true,
-    selfAccessUserIdParam: 'id'
+    selfAccessUserIdParam: 'id',
   }),
   userController.getUserById
 );
 
 // Require any of multiple permissions
-app.get('/admin',
+app.get(
+  '/admin',
   requireAnyPermission([
     { action: 'admin', resource: 'system' },
-    { action: 'manage', resource: 'users' }
+    { action: 'manage', resource: 'users' },
   ]),
   adminController.dashboard
 );
@@ -212,6 +222,7 @@ app.get('/admin',
 ## Policy Conditions
 
 ### Time-based Conditions
+
 ```typescript
 conditions: {
   environment: {
@@ -224,6 +235,7 @@ conditions: {
 ```
 
 ### IP-based Conditions
+
 ```typescript
 conditions: {
   environment: {
@@ -234,6 +246,7 @@ conditions: {
 ```
 
 ### Resource Attribute Conditions
+
 ```typescript
 conditions: {
   resource: {
@@ -246,6 +259,7 @@ conditions: {
 ```
 
 ### User Attribute Conditions
+
 ```typescript
 conditions: {
   user: {
@@ -260,24 +274,29 @@ conditions: {
 ## Migration from RBAC
 
 ### 1. Run Migration Script
+
 ```bash
 npm run migrate:pbac
 ```
 
 ### 2. Update Middleware Usage
+
 Replace old RBAC middleware:
+
 ```typescript
 // Old RBAC
-requireRole(UserRole.ADMIN)
-requirePermission('users:read')
+requireRole(UserRole.ADMIN);
+requirePermission('users:read');
 
 // New PBAC
-requirePermission('admin', 'system')
-requirePermission('read', 'users')
+requirePermission('admin', 'system');
+requirePermission('read', 'users');
 ```
 
 ### 3. Update Type Definitions
+
 Remove static role enums and use dynamic roles:
+
 ```typescript
 // Old
 interface User {
@@ -293,11 +312,13 @@ interface User {
 ## Performance Considerations
 
 ### Caching
+
 - Permission results are cached for 15 minutes
 - Cache keys include user, action, resource, and context
 - Automatic cache invalidation on policy/role changes
 
 ### Optimization Tips
+
 1. Use specific actions/resources instead of wildcards when possible
 2. Set appropriate policy priorities
 3. Monitor cache hit rates
@@ -333,6 +354,7 @@ interface User {
 ### Debug Tools
 
 Use the permission evaluation endpoint for debugging:
+
 ```typescript
 POST /v1/permissions/evaluate
 {
@@ -342,4 +364,5 @@ POST /v1/permissions/evaluate
 }
 ```
 
-This returns detailed evaluation results including which policies matched and why access was granted or denied.
+This returns detailed evaluation results including which policies matched and why access was granted
+or denied.

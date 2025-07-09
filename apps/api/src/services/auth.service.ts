@@ -36,10 +36,7 @@ export const authService = {
     }
 
     // Generate tokens
-    const tokens = await this.generateTokens(
-      user.id,
-      user.email
-    );
+    const tokens = await this.generateTokens(user.id, user.email);
 
     // Update last login
     await userRepository.updateLastLogin(user.id);
@@ -101,10 +98,7 @@ export const authService = {
     await roleService.assignRoleToUser(user.id, 'user');
 
     // Generate tokens
-    const tokens = await this.generateTokens(
-      user.id,
-      user.email
-    );
+    const tokens = await this.generateTokens(user.id, user.email);
 
     logger.info('User registered', { userId: user.id, email: user.email });
 
@@ -142,10 +136,7 @@ export const authService = {
       }
 
       // Generate new tokens
-      const tokens = await this.generateTokens(
-        user.id,
-        user.email
-      );
+      const tokens = await this.generateTokens(user.id, user.email);
 
       return tokens;
     } catch (error) {

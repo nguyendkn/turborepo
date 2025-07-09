@@ -117,42 +117,65 @@ export type ApiErrorType =
  * Type guard for API errors
  */
 export const isApiError = (error: unknown): error is ApiError => {
-  return typeof error === 'object' && error !== null && 'code' in error && 'message' in error;
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    'message' in error
+  );
 };
 
 /**
  * Type guard for network errors
  */
 export const isNetworkError = (error: unknown): error is NetworkError => {
-  return typeof error === 'object' && error !== null && 'isNetworkError' in error;
+  return (
+    typeof error === 'object' && error !== null && 'isNetworkError' in error
+  );
 };
 
 /**
  * Type guard for validation errors
  */
 export const isValidationError = (error: unknown): error is ValidationError => {
-  return typeof error === 'object' && error !== null && 'isValidationError' in error;
+  return (
+    typeof error === 'object' && error !== null && 'isValidationError' in error
+  );
 };
 
 /**
  * Type guard for authentication errors
  */
-export const isAuthenticationError = (error: unknown): error is AuthenticationError => {
-  return typeof error === 'object' && error !== null && 'isAuthenticationError' in error;
+export const isAuthenticationError = (
+  error: unknown
+): error is AuthenticationError => {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'isAuthenticationError' in error
+  );
 };
 
 /**
  * Type guard for authorization errors
  */
-export const isAuthorizationError = (error: unknown): error is AuthorizationError => {
-  return typeof error === 'object' && error !== null && 'isAuthorizationError' in error;
+export const isAuthorizationError = (
+  error: unknown
+): error is AuthorizationError => {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'isAuthorizationError' in error
+  );
 };
 
 /**
  * Type guard for server errors
  */
 export const isServerError = (error: unknown): error is ServerError => {
-  return typeof error === 'object' && error !== null && 'isServerError' in error;
+  return (
+    typeof error === 'object' && error !== null && 'isServerError' in error
+  );
 };
 
 /**

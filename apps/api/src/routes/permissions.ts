@@ -52,10 +52,7 @@ permissionRoutes.post(
  * GET /permissions/my-permissions
  * Get all permissions for current user
  */
-permissionRoutes.get(
-  '/my-permissions',
-  permissionController.getMyPermissions
-);
+permissionRoutes.get('/my-permissions', permissionController.getMyPermissions);
 
 /**
  * GET /permissions/user/:userId
@@ -71,10 +68,7 @@ permissionRoutes.get(
  * DELETE /permissions/cache
  * Clear permission cache for current user
  */
-permissionRoutes.delete(
-  '/cache',
-  permissionController.clearMyCache
-);
+permissionRoutes.delete('/cache', permissionController.clearMyCache);
 
 /**
  * DELETE /permissions/cache/:userId

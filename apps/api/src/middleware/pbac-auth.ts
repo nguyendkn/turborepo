@@ -31,7 +31,9 @@ export function requirePermission(
     }
 
     // Build permission request
-    const resourceId = options?.resourceIdParam ? c.req.param(options.resourceIdParam) : undefined;
+    const resourceId = options?.resourceIdParam
+      ? c.req.param(options.resourceIdParam)
+      : undefined;
     const permissionRequest: PermissionRequest = {
       action,
       resource,
@@ -39,7 +41,8 @@ export function requirePermission(
     };
 
     // Get request context for evaluation
-    const ipAddress = c.req.header('x-forwarded-for') || c.req.header('x-real-ip');
+    const ipAddress =
+      c.req.header('x-forwarded-for') || c.req.header('x-real-ip');
     const userAgent = c.req.header('user-agent');
     const requestContext = {
       ...(ipAddress && { ipAddress }),

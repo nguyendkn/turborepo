@@ -39,7 +39,9 @@ export const permissionController = {
         context: requestData.context,
       };
 
-      const requestContext = extractRequestContext(c, { location: requestData.location });
+      const requestContext = extractRequestContext(c, {
+        location: requestData.location,
+      });
 
       const hasPermission = await permissionEvaluatorService.hasPermission(
         user,
@@ -97,13 +99,16 @@ export const permissionController = {
         context: requestData.context,
       };
 
-      const requestContext = extractRequestContext(c, { location: requestData.location });
+      const requestContext = extractRequestContext(c, {
+        location: requestData.location,
+      });
 
-      const evaluationResult = await permissionEvaluatorService.evaluatePermission(
-        user,
-        permissionRequest,
-        requestContext
-      );
+      const evaluationResult =
+        await permissionEvaluatorService.evaluatePermission(
+          user,
+          permissionRequest,
+          requestContext
+        );
 
       const response: ApiResponse = {
         success: true,
@@ -112,10 +117,12 @@ export const permissionController = {
           user: {
             id: user.id,
             email: user.email,
-            roles: user.roles.map((role: { name: string; policies: { name: string }[] }) => ({
-              name: role.name,
-              policies: role.policies.map((p: { name: string }) => p.name),
-            })),
+            roles: user.roles.map(
+              (role: { name: string; policies: { name: string }[] }) => ({
+                name: role.name,
+                policies: role.policies.map((p: { name: string }) => p.name),
+              })
+            ),
           },
           request: permissionRequest,
         },
@@ -144,22 +151,36 @@ export const permissionController = {
       const requestData = await c.req.json();
 
       if (!requestData.permissions || !Array.isArray(requestData.permissions)) {
-        throw new HTTPException(400, { message: 'Permissions array is required' });
+        throw new HTTPException(400, {
+          message: 'Permissions array is required',
+        });
       }
 
-      const permissionRequests: PermissionRequest[] = requestData.permissions.map((perm: any) => {
-        if (!perm.action || !perm.resource) {
-          throw new HTTPException(400, { message: 'Each permission must have action and resource' });
-        }
-        return {
-          action: perm.action,
-          resource: perm.resource,
-          resourceId: perm.resourceId,
-          context: perm.context,
-        };
-      });
+      const permissionRequests: PermissionRequest[] =
+        requestData.permissions.map(
+          (perm: {
+            action: string;
+            resource: string;
+            resourceId?: string;
+            context?: Record<string, unknown>;
+          }) => {
+            if (!perm.action || !perm.resource) {
+              throw new HTTPException(400, {
+                message: 'Each permission must have action and resource',
+              });
+            }
+            return {
+              action: perm.action,
+              resource: perm.resource,
+              resourceId: perm.resourceId,
+              context: perm.context,
+            };
+          }
+        );
 
-      const requestContext = extractRequestContext(c, { location: requestData.location });
+      const requestContext = extractRequestContext(c, {
+        location: requestData.location,
+      });
 
       const results = await permissionEvaluatorService.checkMultiplePermissions(
         user,
@@ -199,7 +220,9 @@ export const permissionController = {
         throw new HTTPException(401, { message: 'Authentication required' });
       }
 
-      const permissions = await permissionEvaluatorService.getUserPermissions(user.id);
+      const permissions = await permissionEvaluatorService.getUserPermissions(
+        user.id
+      );
 
       const response: ApiResponse = {
         success: true,
@@ -222,7 +245,8 @@ export const permissionController = {
   getUserPermissions: (async c => {
     try {
       const userId = c.req.param('userId');
-      const permissions = await permissionEvaluatorService.getUserPermissions(userId);
+      const permissions =
+        await permissionEvaluatorService.getUserPermissions(userId);
 
       const response: ApiResponse = {
         success: true,

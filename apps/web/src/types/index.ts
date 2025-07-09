@@ -49,7 +49,14 @@ export interface LoadingState {
  */
 export interface FormFieldConfig {
   name: string;
-  type: 'text' | 'email' | 'password' | 'number' | 'select' | 'checkbox' | 'textarea';
+  type:
+    | 'text'
+    | 'email'
+    | 'password'
+    | 'number'
+    | 'select'
+    | 'checkbox'
+    | 'textarea';
   label: string;
   placeholder?: string;
   required?: boolean;
@@ -83,7 +90,11 @@ export interface NetworkStatus {
  * Window with gtag for analytics
  */
 export interface WindowWithGtag {
-  gtag: (command: string, action: string, parameters: Record<string, unknown>) => void;
+  gtag: (
+    command: string,
+    action: string,
+    parameters: Record<string, unknown>
+  ) => void;
 }
 
 /**

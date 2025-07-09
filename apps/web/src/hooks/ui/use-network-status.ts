@@ -86,7 +86,8 @@ export const useNetworkStatus = (options: NetworkStatusOptions = {}) => {
    */
   const updateConnectionInfo = useCallback(() => {
     if ('connection' in navigator) {
-      const connection = (navigator as { connection: NetworkConnection }).connection;
+      const connection = (navigator as { connection: NetworkConnection })
+        .connection;
       setConnectionInfo({
         connectionType: connection.type || null,
         effectiveType: connection.effectiveType || null,
@@ -214,7 +215,8 @@ export const useNetworkStatus = (options: NetworkStatusOptions = {}) => {
 
     // Network Information API events
     if ('connection' in navigator) {
-      const connection = (navigator as { connection: NetworkConnection }).connection;
+      const connection = (navigator as { connection: NetworkConnection })
+        .connection;
       connection.addEventListener('change', handleConnectionChange);
     }
 
@@ -226,7 +228,8 @@ export const useNetworkStatus = (options: NetworkStatusOptions = {}) => {
       window.removeEventListener('offline', handleOffline);
 
       if ('connection' in navigator) {
-        const connection = (navigator as { connection: NetworkConnection }).connection;
+        const connection = (navigator as { connection: NetworkConnection })
+          .connection;
         connection.removeEventListener('change', handleConnectionChange);
       }
     };

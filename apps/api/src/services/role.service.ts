@@ -14,7 +14,21 @@ export class RoleService {
   /**
    * Convert database policy result to Policy interface
    */
-  private convertToPolicy(dbPolicy: any): Policy {
+  private convertToPolicy(dbPolicy: {
+    id: string;
+    name: string;
+    description?: string;
+    version: number;
+    isActive: boolean;
+    conditions: unknown;
+    actions: unknown;
+    resources: unknown;
+    effect: 'allow' | 'deny';
+    priority: number;
+    createdAt: Date;
+    updatedAt: Date;
+    createdBy?: string;
+  }): Policy {
     const result: Policy = {
       id: dbPolicy.id,
       name: dbPolicy.name,
@@ -40,7 +54,17 @@ export class RoleService {
   /**
    * Convert database role result to Role interface
    */
-  private convertToRole(dbRole: any, policies: Policy[] = []): Role {
+  private convertToRole(dbRole: {
+    id: string;
+    name: string;
+    description?: string;
+    isActive: boolean;
+    isSystemRole: boolean;
+    metadata?: unknown;
+    createdAt: Date;
+    updatedAt: Date;
+    createdBy?: string;
+  }, policies: Policy[] = []): Role {
     const result: Role = {
       id: dbRole.id,
       name: dbRole.name,
@@ -63,14 +87,21 @@ export class RoleService {
   /**
    * Get all roles with optional filtering
    */
-  async getRoles(options: {
-    page?: number;
-    limit?: number;
-    includeInactive?: boolean;
-    systemRolesOnly?: boolean;
-  } = {}) {
+  async getRoles(
+    options: {
+      page?: number;
+      limit?: number;
+      includeInactive?: boolean;
+      systemRolesOnly?: boolean;
+    } = {}
+  ) {
     try {
-      const { page = 1, limit = 20, includeInactive = false, systemRolesOnly = false } = options;
+      const {
+        page = 1,
+        limit = 20,
+        includeInactive = false,
+        systemRolesOnly = false,
+      } = options;
       const offset = (page - 1) * limit;
 
       const query = db
@@ -105,9 +136,7 @@ export class RoleService {
         .offset(offset);
 
       // Get total count for pagination
-      const totalQuery = db
-        .select({ count: count() })
-        .from(roles);
+      const totalQuery = db.select({ count: count() }).from(roles);
 
       if (conditions.length > 0) {
         totalQuery.where(and(...conditions));
@@ -139,7 +168,9 @@ export class RoleService {
             .innerJoin(rolePolicies, eq(policies.id, rolePolicies.policyId))
             .where(eq(rolePolicies.roleId, role.id));
 
-          const rolePoliciesList = rolePoliciesData.map(p => this.convertToPolicy(p));
+          const rolePoliciesList = rolePoliciesData.map(p =>
+            this.convertToPolicy(p)
+          );
           return this.convertToRole(role, rolePoliciesList);
         })
       );
@@ -204,7 +235,9 @@ export class RoleService {
         .innerJoin(rolePolicies, eq(policies.id, rolePolicies.policyId))
         .where(eq(rolePolicies.roleId, id));
 
-      const rolePoliciesList = rolePoliciesData.map(p => this.convertToPolicy(p));
+      const rolePoliciesList = rolePoliciesData.map(p =>
+        this.convertToPolicy(p)
+      );
       return this.convertToRole(roleData, rolePoliciesList);
     } catch (error) {
       logger.error('Get role by ID failed:', error);
@@ -220,7 +253,7 @@ export class RoleService {
     description?: string;
     policyIds: string[];
     isSystemRole?: boolean;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
     createdBy?: string;
   }): Promise<Role> {
     try {
@@ -242,7 +275,9 @@ export class RoleService {
           .where(inArray(policies.id, roleData.policyIds));
 
         if (existingPolicies.length !== roleData.policyIds.length) {
-          throw new HTTPException(400, { message: 'One or more policy IDs are invalid' });
+          throw new HTTPException(400, {
+            message: 'One or more policy IDs are invalid',
+          });
         }
       }
 
@@ -275,7 +310,9 @@ export class RoleService {
       // Return the created role with policies
       const createdRole = await this.getRoleById(newRole.id);
       if (!createdRole) {
-        throw new HTTPException(500, { message: 'Failed to retrieve created role' });
+        throw new HTTPException(500, {
+          message: 'Failed to retrieve created role',
+        });
       }
 
       return createdRole;
@@ -291,13 +328,16 @@ export class RoleService {
   /**
    * Update role
    */
-  async updateRole(id: string, updates: {
-    name?: string;
-    description?: string;
-    policyIds?: string[];
-    isActive?: boolean;
-    metadata?: Record<string, any>;
-  }): Promise<Role> {
+  async updateRole(
+    id: string,
+    updates: {
+      name?: string;
+      description?: string;
+      policyIds?: string[];
+      isActive?: boolean;
+      metadata?: Record<string, unknown>;
+    }
+  ): Promise<Role> {
     try {
       // Check if role exists
       const existingRole = await this.getRoleById(id);
@@ -325,30 +365,36 @@ export class RoleService {
           .where(inArray(policies.id, updates.policyIds));
 
         if (existingPolicies.length !== updates.policyIds.length) {
-          throw new HTTPException(400, { message: 'One or more policy IDs are invalid' });
+          throw new HTTPException(400, {
+            message: 'One or more policy IDs are invalid',
+          });
         }
       }
 
       // Update role
-      const updateData: any = {};
+      const updateData: Partial<{
+        name: string;
+        description: string;
+        isActive: boolean;
+        metadata: Record<string, unknown>;
+        updatedAt: Date;
+      }> = {};
       if (updates.name !== undefined) updateData.name = updates.name;
-      if (updates.description !== undefined) updateData.description = updates.description;
-      if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
-      if (updates.metadata !== undefined) updateData.metadata = updates.metadata;
+      if (updates.description !== undefined)
+        updateData.description = updates.description;
+      if (updates.isActive !== undefined)
+        updateData.isActive = updates.isActive;
+      if (updates.metadata !== undefined)
+        updateData.metadata = updates.metadata;
 
       if (Object.keys(updateData).length > 0) {
-        await db
-          .update(roles)
-          .set(updateData)
-          .where(eq(roles.id, id));
+        await db.update(roles).set(updateData).where(eq(roles.id, id));
       }
 
       // Update role policies if provided
       if (updates.policyIds !== undefined) {
         // Remove existing policy associations
-        await db
-          .delete(rolePolicies)
-          .where(eq(rolePolicies.roleId, id));
+        await db.delete(rolePolicies).where(eq(rolePolicies.roleId, id));
 
         // Add new policy associations
         if (updates.policyIds.length > 0) {
@@ -364,7 +410,9 @@ export class RoleService {
       // Return updated role
       const updatedRole = await this.getRoleById(id);
       if (!updatedRole) {
-        throw new HTTPException(500, { message: 'Failed to retrieve updated role' });
+        throw new HTTPException(500, {
+          message: 'Failed to retrieve updated role',
+        });
       }
 
       return updatedRole;
@@ -396,19 +444,16 @@ export class RoleService {
 
       if (userAssignment) {
         throw new HTTPException(400, {
-          message: 'Cannot delete role that is assigned to users. Remove all user assignments first.'
+          message:
+            'Cannot delete role that is assigned to users. Remove all user assignments first.',
         });
       }
 
       // Delete role policy associations
-      await db
-        .delete(rolePolicies)
-        .where(eq(rolePolicies.roleId, id));
+      await db.delete(rolePolicies).where(eq(rolePolicies.roleId, id));
 
       // Delete role
-      await db
-        .delete(roles)
-        .where(eq(roles.id, id));
+      await db.delete(roles).where(eq(roles.id, id));
 
       logger.info('Role deleted', { roleId: id });
     } catch (error) {
@@ -440,10 +485,7 @@ export class RoleService {
       const [existingAssignment] = await db
         .select({ id: userRoles.id })
         .from(userRoles)
-        .where(and(
-          eq(userRoles.userId, userId),
-          eq(userRoles.roleId, roleId)
-        ));
+        .where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, roleId)));
 
       if (existingAssignment) {
         throw new HTTPException(409, { message: 'User already has this role' });
@@ -463,7 +505,9 @@ export class RoleService {
       if (error instanceof HTTPException) {
         throw error;
       }
-      throw new HTTPException(500, { message: 'Failed to assign role to user' });
+      throw new HTTPException(500, {
+        message: 'Failed to assign role to user',
+      });
     }
   }
 
@@ -474,15 +518,14 @@ export class RoleService {
     try {
       await db
         .delete(userRoles)
-        .where(and(
-          eq(userRoles.userId, userId),
-          eq(userRoles.roleId, roleId)
-        ));
+        .where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, roleId)));
 
       logger.info('Role removed from user', { userId, roleId });
     } catch (error) {
       logger.error('Remove role from user failed:', error);
-      throw new HTTPException(500, { message: 'Failed to remove role from user' });
+      throw new HTTPException(500, {
+        message: 'Failed to remove role from user',
+      });
     }
   }
 }

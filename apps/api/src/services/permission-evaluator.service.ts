@@ -9,7 +9,7 @@ import {
   roles,
   rolePolicies,
   userRoles,
-  policies
+  policies,
 } from '@/database/schema';
 import type {
   PolicyEvaluationContext,
@@ -21,6 +21,35 @@ import type {
   PolicyConditions,
 } from '@/types';
 import { logger } from '@/utils/logger';
+
+// Database result types
+interface DbPolicy {
+  id: string;
+  name: string | null;
+  description?: string | null;
+  version: number | null;
+  isActive: boolean;
+  conditions: unknown;
+  actions: unknown;
+  resources: unknown;
+  effect: string | null;
+  priority: number | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  createdBy?: string | null;
+}
+
+interface DbRole {
+  id: string;
+  name: string;
+  description?: string | null;
+  isActive: boolean;
+  isSystemRole: boolean;
+  metadata?: unknown | null;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy?: string | null;
+}
 
 /**
  * Permission Evaluator Service
@@ -50,9 +79,9 @@ export class PermissionEvaluatorService {
     // Check cache first
     const cachedResult = await this.getCachedResult(user.id, request);
     if (cachedResult !== null) {
-      logger.debug('Using cached permission result', { 
-        userId: user.id, 
-        result: cachedResult 
+      logger.debug('Using cached permission result', {
+        userId: user.id,
+        result: cachedResult,
       });
       return cachedResult;
     }
@@ -193,7 +222,9 @@ export class PermissionEvaluatorService {
 
       policyEvaluations.push({
         policy: policy,
-        effect: (evaluation.decision === 'allow' ? 'allow' : 'deny') as 'allow' | 'deny',
+        effect: (evaluation.decision === 'allow' ? 'allow' : 'deny') as
+          | 'allow'
+          | 'deny',
         matched: evaluation.decision !== 'not_applicable',
         policyId: policy.id,
         policyName: policy.name,
@@ -202,7 +233,10 @@ export class PermissionEvaluatorService {
         matchedConditions: evaluation.matchedConditions,
       });
 
-      if (evaluation.decision === 'allow' && finalDecision === 'not_applicable') {
+      if (
+        evaluation.decision === 'allow' &&
+        finalDecision === 'not_applicable'
+      ) {
         finalDecision = 'allow';
       } else if (evaluation.decision === 'deny') {
         finalDecision = 'deny';
@@ -216,7 +250,7 @@ export class PermissionEvaluatorService {
       policies: policyEvaluations.map(pe => ({
         policy: pe.policy,
         effect: pe.effect,
-        matched: pe.matched
+        matched: pe.matched,
       })),
       reason: `Evaluated ${policyEvaluations.length} policies`,
       matchedConditions: [],
@@ -302,7 +336,9 @@ export class PermissionEvaluatorService {
   ): Promise<boolean | null> {
     try {
       const cacheKey = this.generateCacheKey(request);
-      const expirationTime = new Date(Date.now() - this.cacheExpirationMinutes * 60 * 1000);
+      const expirationTime = new Date(
+        Date.now() - this.cacheExpirationMinutes * 60 * 1000
+      );
 
       const [cachedResult] = await db
         .select({ result: policyEvaluationCache.result })
@@ -373,20 +409,20 @@ export class PermissionEvaluatorService {
   /**
    * Convert database policy result to Policy interface
    */
-  private convertToPolicy(dbPolicy: any): Policy {
+  private convertToPolicy(dbPolicy: DbPolicy): Policy {
     const result: Policy = {
       id: dbPolicy.id,
-      name: dbPolicy.name,
+      name: dbPolicy.name || '',
       description: dbPolicy.description || '',
-      version: dbPolicy.version,
+      version: dbPolicy.version || 1,
       isActive: dbPolicy.isActive,
       conditions: dbPolicy.conditions as PolicyConditions,
       actions: dbPolicy.actions as string[],
       resources: dbPolicy.resources as string[],
-      effect: dbPolicy.effect as 'allow' | 'deny',
-      priority: dbPolicy.priority,
-      createdAt: dbPolicy.createdAt,
-      updatedAt: dbPolicy.updatedAt,
+      effect: (dbPolicy.effect as 'allow' | 'deny') || 'allow',
+      priority: dbPolicy.priority || 0,
+      createdAt: dbPolicy.createdAt || new Date(),
+      updatedAt: dbPolicy.updatedAt || new Date(),
     };
 
     if (dbPolicy.createdBy) {
@@ -399,7 +435,7 @@ export class PermissionEvaluatorService {
   /**
    * Convert database role result to Role interface
    */
-  private convertToRole(dbRole: any, policies: Policy[] = []): Role {
+  private convertToRole(dbRole: DbRole, policies: Policy[] = []): Role {
     const result: Role = {
       id: dbRole.id,
       name: dbRole.name,
@@ -407,7 +443,7 @@ export class PermissionEvaluatorService {
       isActive: dbRole.isActive,
       isSystemRole: dbRole.isSystemRole,
       policies,
-      metadata: dbRole.metadata || {},
+      metadata: (dbRole.metadata as Record<string, unknown>) || {},
       createdAt: dbRole.createdAt,
       updatedAt: dbRole.updatedAt,
     };
@@ -453,13 +489,10 @@ export class PermissionEvaluatorService {
         .innerJoin(roles, eq(userRoles.roleId, roles.id))
         .leftJoin(rolePolicies, eq(roles.id, rolePolicies.roleId))
         .leftJoin(policies, eq(rolePolicies.policyId, policies.id))
-        .where(and(
-          eq(userRoles.userId, userId),
-          eq(roles.isActive, true)
-        ));
+        .where(and(eq(userRoles.userId, userId), eq(roles.isActive, true)));
 
       // Group by role and collect policies
-      const roleMap = new Map<string, { role: any; policies: Policy[] }>();
+      const roleMap = new Map<string, { role: DbRole; policies: Policy[] }>();
 
       for (const row of userRoleData) {
         if (!roleMap.has(row.roleId)) {
@@ -496,7 +529,10 @@ export class PermissionEvaluatorService {
             updatedAt: row.policyUpdatedAt,
           });
 
-          roleMap.get(row.roleId)!.policies.push(policy);
+          const roleData = roleMap.get(row.roleId);
+          if (roleData) {
+            roleData.policies.push(policy);
+          }
         }
       }
 
@@ -505,7 +541,9 @@ export class PermissionEvaluatorService {
       );
     } catch (error) {
       logger.error('Get user roles failed:', error);
-      throw new HTTPException(500, { message: 'Failed to retrieve user roles' });
+      throw new HTTPException(500, {
+        message: 'Failed to retrieve user roles',
+      });
     }
   }
 }
