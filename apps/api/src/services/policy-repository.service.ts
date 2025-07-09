@@ -1,9 +1,8 @@
-import { eq, and, desc, asc, like, or } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
-import { db } from '@/config/database';
-import { policies } from '@/database/schema';
+import { Policy as PolicyModel, type IPolicy } from '@/database/models';
 import type { Policy, PolicyConditions } from '@/types';
+import type { PolicyFilterConditions, MongoSortOptions } from '@/types/database';
 import { logger } from '@/utils/logger';
 
 /**
@@ -12,40 +11,26 @@ import { logger } from '@/utils/logger';
  */
 export class PolicyRepositoryService {
   /**
-   * Convert database policy result to Policy interface
+   * Convert Mongoose policy document to Policy interface
    */
-  private convertToPolicy(dbPolicy: {
-    id: string;
-    name: string;
-    description?: string | null;
-    version: number;
-    isActive: boolean;
-    conditions: unknown;
-    actions: unknown;
-    resources: unknown;
-    effect: string;
-    priority: number;
-    createdAt: Date;
-    updatedAt: Date;
-    createdBy?: string | null;
-  }): Policy {
+  private convertToPolicy(dbPolicy: IPolicy): Policy {
     const result: Policy = {
-      id: dbPolicy.id,
+      id: dbPolicy._id.toString(),
       name: dbPolicy.name,
       description: dbPolicy.description || '',
       version: dbPolicy.version,
       isActive: dbPolicy.isActive,
       conditions: dbPolicy.conditions as PolicyConditions,
-      actions: dbPolicy.actions as string[],
-      resources: dbPolicy.resources as string[],
-      effect: dbPolicy.effect as 'allow' | 'deny',
+      actions: dbPolicy.actions as unknown as string[],
+      resources: dbPolicy.resources as unknown as string[],
+      effect: dbPolicy.effect,
       priority: dbPolicy.priority,
       createdAt: dbPolicy.createdAt,
       updatedAt: dbPolicy.updatedAt,
     };
 
     if (dbPolicy.createdBy) {
-      result.createdBy = dbPolicy.createdBy;
+      result.createdBy = dbPolicy.createdBy.toString();
     }
 
     return result;
@@ -66,35 +51,26 @@ export class PolicyRepositoryService {
   }): Promise<Policy> {
     try {
       // Check if policy name already exists
-      const [existingPolicy] = await db
-        .select({ id: policies.id })
-        .from(policies)
-        .where(eq(policies.name, policyData.name))
-        .limit(1);
+      const existingPolicy = await PolicyModel.findOne({ name: policyData.name });
 
       if (existingPolicy) {
         throw new HTTPException(409, { message: 'Policy name already exists' });
       }
 
       // Create policy
-      const [newPolicy] = await db
-        .insert(policies)
-        .values({
-          name: policyData.name,
-          description: policyData.description || null,
-          conditions: policyData.conditions,
-          actions: policyData.actions,
-          resources: policyData.resources,
-          effect: policyData.effect || 'allow',
-          priority: policyData.priority || 0,
-          createdBy: policyData.createdBy || null,
-        })
-        .returning();
+      const newPolicy = new PolicyModel({
+        name: policyData.name,
+        description: policyData.description,
+        conditions: policyData.conditions,
+        actions: policyData.actions,
+        resources: policyData.resources,
+        effect: policyData.effect || 'allow',
+        priority: policyData.priority || 0,
+        createdBy: policyData.createdBy,
+      });
 
-      if (!newPolicy) {
-        throw new HTTPException(500, { message: 'Failed to create policy' });
-      }
-      return this.convertToPolicy(newPolicy);
+      const savedPolicy = await newPolicy.save();
+      return this.convertToPolicy(savedPolicy);
     } catch (error) {
       logger.error('Create policy failed:', error);
       if (error instanceof HTTPException) {
@@ -134,57 +110,44 @@ export class PolicyRepositoryService {
         sortOrder = 'desc',
       } = options;
 
-      const offset = (page - 1) * limit;
+      const skip = (page - 1) * limit;
 
-      // Build where conditions
-      const conditions = [];
+      // Build filter conditions
+      const filterConditions: PolicyFilterConditions = {};
+
       if (!includeInactive) {
-        conditions.push(eq(policies.isActive, true));
+        filterConditions.isActive = true;
       }
+
       if (effect) {
-        conditions.push(eq(policies.effect, effect));
+        filterConditions.effect = effect;
       }
+
       if (search) {
-        conditions.push(
-          or(
-            like(policies.name, `%${search}%`),
-            like(policies.description, `%${search}%`)
-          )
-        );
+        filterConditions.$or = [
+          { name: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+        ];
       }
 
-      // Build order by
-      const orderByColumn = policies[sortBy];
-      const orderByFn = sortOrder === 'asc' ? asc : desc;
+      // Build sort options
+      const sortOptions: MongoSortOptions = {};
+      sortOptions[sortBy] = sortOrder === 'asc' ? 1 : -1;
 
-      // Get policies
-      const whereCondition =
-        conditions.length === 0
-          ? undefined
-          : conditions.length === 1
-            ? conditions[0]
-            : and(...conditions);
-
-      const query = db.select().from(policies);
-      const policyResults = await (
-        whereCondition ? query.where(whereCondition) : query
-      )
-        .orderBy(orderByFn(orderByColumn))
+      // Get policies with pagination
+      const policyResults = await PolicyModel.find(filterConditions)
+        .sort(sortOptions)
         .limit(limit)
-        .offset(offset);
+        .skip(skip);
 
       // Get total count
-      const countQuery = db.select({ count: policies.id }).from(policies);
-      const countResult = await (whereCondition
-        ? countQuery.where(whereCondition)
-        : countQuery);
-      const count = countResult[0]?.count || '0';
+      const total = await PolicyModel.countDocuments(filterConditions);
 
       return {
         policies: policyResults.map(p => this.convertToPolicy(p)),
         page,
         limit,
-        total: parseInt(count, 10),
+        total,
       };
     } catch (error) {
       logger.error('Get policies failed:', error);
@@ -197,12 +160,7 @@ export class PolicyRepositoryService {
    */
   async getPolicyById(id: string): Promise<Policy | null> {
     try {
-      const [policyData] = await db
-        .select()
-        .from(policies)
-        .where(eq(policies.id, id))
-        .limit(1);
-
+      const policyData = await PolicyModel.findById(id);
       return policyData ? this.convertToPolicy(policyData) : null;
     } catch (error) {
       logger.error('Get policy by ID failed:', error);
@@ -215,12 +173,7 @@ export class PolicyRepositoryService {
    */
   async getPolicyByName(name: string): Promise<Policy | null> {
     try {
-      const [policyData] = await db
-        .select()
-        .from(policies)
-        .where(eq(policies.name, name))
-        .limit(1);
-
+      const policyData = await PolicyModel.findOne({ name });
       return policyData ? this.convertToPolicy(policyData) : null;
     } catch (error) {
       logger.error('Get policy by name failed:', error);
@@ -253,11 +206,7 @@ export class PolicyRepositoryService {
 
       // Check if new name conflicts with existing policy
       if (updates.name && updates.name !== existingPolicy.name) {
-        const [conflictingPolicy] = await db
-          .select({ id: policies.id })
-          .from(policies)
-          .where(eq(policies.name, updates.name))
-          .limit(1);
+        const conflictingPolicy = await PolicyModel.findOne({ name: updates.name });
 
         if (conflictingPolicy) {
           throw new HTTPException(409, {
@@ -277,31 +226,17 @@ export class PolicyRepositoryService {
         priority: number;
         isActive: boolean;
         version: number;
-        updatedAt: Date;
-      }> = {};
-      if (updates.name !== undefined) updateData.name = updates.name;
-      if (updates.description !== undefined)
-        updateData.description = updates.description;
-      if (updates.conditions !== undefined)
-        updateData.conditions = updates.conditions;
-      if (updates.actions !== undefined) updateData.actions = updates.actions;
-      if (updates.resources !== undefined)
-        updateData.resources = updates.resources;
-      if (updates.effect !== undefined) updateData.effect = updates.effect;
-      if (updates.priority !== undefined)
-        updateData.priority = updates.priority;
-      if (updates.isActive !== undefined)
-        updateData.isActive = updates.isActive;
+      }> = { ...updates };
 
       // Increment version
       updateData.version = existingPolicy.version + 1;
 
       // Update policy
-      const [updatedPolicy] = await db
-        .update(policies)
-        .set(updateData)
-        .where(eq(policies.id, id))
-        .returning();
+      const updatedPolicy = await PolicyModel.findByIdAndUpdate(
+        id,
+        updateData,
+        { new: true, runValidators: true }
+      );
 
       if (!updatedPolicy) {
         throw new HTTPException(500, { message: 'Failed to update policy' });
@@ -321,12 +256,9 @@ export class PolicyRepositoryService {
    */
   async deletePolicy(id: string): Promise<void> {
     try {
-      const result = await db
-        .delete(policies)
-        .where(eq(policies.id, id))
-        .returning();
+      const result = await PolicyModel.findByIdAndDelete(id);
 
-      if (result.length === 0) {
+      if (!result) {
         throw new HTTPException(404, { message: 'Policy not found' });
       }
     } catch (error) {
@@ -343,11 +275,11 @@ export class PolicyRepositoryService {
    */
   async togglePolicyStatus(id: string, isActive: boolean): Promise<Policy> {
     try {
-      const [updatedPolicy] = await db
-        .update(policies)
-        .set({ isActive })
-        .where(eq(policies.id, id))
-        .returning();
+      const updatedPolicy = await PolicyModel.findByIdAndUpdate(
+        id,
+        { isActive },
+        { new: true, runValidators: true }
+      );
 
       if (!updatedPolicy) {
         throw new HTTPException(404, { message: 'Policy not found' });

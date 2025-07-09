@@ -1,70 +1,74 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
+import mongoose from 'mongoose';
 
 import { config } from '@/config/app';
 import { logger } from '@/utils/logger';
 
 /**
- * Database connection pool
+ * MongoDB connection instance
  */
-let pool: Pool | null = null;
+let isConnected = false;
 
 /**
- * Get database connection pool
+ * Connect to MongoDB using Mongoose
  */
-export function getPool(): Pool {
-  if (!pool) {
-    const connectionConfig = config.database.url
-      ? { connectionString: config.database.url }
-      : {
-          host: config.database.host,
-          port: config.database.port,
-          database: config.database.name,
-          user: config.database.user,
-          password: config.database.password,
-          ssl: config.database.ssl ? { rejectUnauthorized: false } : false,
-        };
-
-    pool = new Pool({
-      ...connectionConfig,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
-    });
-
-    pool.on('error', err => {
-      logger.error('Unexpected error on idle client', err);
-    });
-
-    pool.on('connect', () => {
-      logger.debug('Database client connected');
-    });
-
-    pool.on('remove', () => {
-      logger.debug('Database client removed');
-    });
+export async function connectToDatabase(): Promise<void> {
+  if (isConnected) {
+    logger.debug('Already connected to MongoDB');
+    return;
   }
 
-  return pool;
-}
+  try {
+    const connectionString = config.database.url ||
+      `mongodb://${config.database.user}:${config.database.password}@${config.database.host}:${config.database.port}/${config.database.name}`;
 
-/**
- * Drizzle database instance
- */
-export const db = drizzle(getPool());
+    await mongoose.connect(connectionString, {
+      maxPoolSize: 20, // Maximum number of connections in the connection pool
+      serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+      bufferCommands: false, // Disable mongoose buffering
+    });
+
+    isConnected = true;
+    logger.info('Connected to MongoDB successfully');
+
+    // Handle connection events
+    mongoose.connection.on('error', (error) => {
+      logger.error('MongoDB connection error:', error);
+      isConnected = false;
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      logger.warn('MongoDB disconnected');
+      isConnected = false;
+    });
+
+    mongoose.connection.on('reconnected', () => {
+      logger.info('MongoDB reconnected');
+      isConnected = true;
+    });
+
+  } catch (error) {
+    logger.error('Failed to connect to MongoDB:', error);
+    isConnected = false;
+    throw error;
+  }
+}
 
 /**
  * Test database connection
  */
 export async function testConnection(): Promise<boolean> {
   try {
-    const client = await getPool().connect();
-    await client.query('SELECT 1');
-    client.release();
-    logger.info('Database connection successful');
+    if (!isConnected) {
+      await connectToDatabase();
+    }
+
+    // Test the connection by running a simple operation
+    await mongoose.connection.db?.admin().ping();
+    logger.info('Database connection test successful');
     return true;
   } catch (error) {
-    logger.error('Database connection failed:', error);
+    logger.error('Database connection test failed:', error);
     return false;
   }
 }
@@ -73,9 +77,9 @@ export async function testConnection(): Promise<boolean> {
  * Close database connection
  */
 export async function closeConnection(): Promise<void> {
-  if (pool) {
-    await pool.end();
-    pool = null;
+  if (isConnected) {
+    await mongoose.connection.close();
+    isConnected = false;
     logger.info('Database connection closed');
   }
 }

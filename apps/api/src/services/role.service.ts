@@ -1,9 +1,15 @@
-import { eq, and, desc, inArray, count } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
-import { db } from '@/config/database';
-import { roles, rolePolicies, userRoles, policies } from '@/database/schema';
+import {
+  Role as RoleModel,
+  Policy as PolicyModel,
+  RolePolicy,
+  UserRole,
+  type IRole,
+  type IPolicy
+} from '@/database/models';
 import type { Role, Policy, PolicyConditions } from '@/types';
+import type { RoleMetadata } from '@/types/database';
 import { logger } from '@/utils/logger';
 
 /**
@@ -12,76 +18,52 @@ import { logger } from '@/utils/logger';
  */
 export class RoleService {
   /**
-   * Convert database policy result to Policy interface
+   * Convert Mongoose policy document to Policy interface
    */
-  private convertToPolicy(dbPolicy: {
-    id: string;
-    name: string;
-    description?: string | null;
-    version: number;
-    isActive: boolean;
-    conditions: unknown;
-    actions: unknown;
-    resources: unknown;
-    effect: string;
-    priority: number;
-    createdAt: Date;
-    updatedAt: Date;
-    createdBy?: string | null;
-  }): Policy {
+  private convertToPolicy(dbPolicy: IPolicy): Policy {
     const result: Policy = {
-      id: dbPolicy.id,
+      id: dbPolicy._id.toString(),
       name: dbPolicy.name,
       description: dbPolicy.description || '',
       version: dbPolicy.version,
       isActive: dbPolicy.isActive,
       conditions: dbPolicy.conditions as PolicyConditions,
-      actions: dbPolicy.actions as string[],
-      resources: dbPolicy.resources as string[],
-      effect: dbPolicy.effect as 'allow' | 'deny',
+      actions: dbPolicy.actions as unknown as string[],
+      resources: dbPolicy.resources as unknown as string[],
+      effect: dbPolicy.effect,
       priority: dbPolicy.priority,
       createdAt: dbPolicy.createdAt,
       updatedAt: dbPolicy.updatedAt,
     };
 
     if (dbPolicy.createdBy) {
-      result.createdBy = dbPolicy.createdBy;
+      result.createdBy = dbPolicy.createdBy.toString();
     }
 
     return result;
   }
 
   /**
-   * Convert database role result to Role interface
+   * Convert Mongoose role document to Role interface
    */
   private convertToRole(
-    dbRole: {
-      id: string;
-      name: string;
-      description?: string | null;
-      isActive: boolean;
-      isSystemRole: boolean;
-      metadata?: unknown | null;
-      createdAt: Date;
-      updatedAt: Date;
-      createdBy?: string | null;
-    },
+    dbRole: IRole,
     policies: Policy[] = []
   ): Role {
     const result: Role = {
-      id: dbRole.id,
+      id: dbRole._id.toString(),
       name: dbRole.name,
       description: dbRole.description || '',
       isActive: dbRole.isActive,
       isSystemRole: dbRole.isSystemRole,
       policies,
-      metadata: (dbRole.metadata as Record<string, unknown>) || ({} as Record<string, unknown>),
+      metadata: (dbRole.metadata as RoleMetadata) || {},
       createdAt: dbRole.createdAt,
       updatedAt: dbRole.updatedAt,
     };
 
     if (dbRole.createdBy) {
-      result.createdBy = dbRole.createdBy;
+      result.createdBy = dbRole.createdBy.toString();
     }
 
     return result;
@@ -105,75 +87,42 @@ export class RoleService {
         includeInactive = false,
         systemRolesOnly = false,
       } = options;
-      const offset = (page - 1) * limit;
+      const skip = (page - 1) * limit;
 
-      const query = db
-        .select({
-          id: roles.id,
-          name: roles.name,
-          description: roles.description,
-          isActive: roles.isActive,
-          isSystemRole: roles.isSystemRole,
-          metadata: roles.metadata,
-          createdBy: roles.createdBy,
-          createdAt: roles.createdAt,
-          updatedAt: roles.updatedAt,
-        })
-        .from(roles);
+      // Build filter conditions
+      const filterConditions: Record<string, unknown> = {};
 
-      const conditions = [];
       if (!includeInactive) {
-        conditions.push(eq(roles.isActive, true));
+        filterConditions.isActive = true;
       }
+
       if (systemRolesOnly) {
-        conditions.push(eq(roles.isSystemRole, true));
+        filterConditions.isSystemRole = true;
       }
 
-      if (conditions.length > 0) {
-        query.where(and(...conditions));
-      }
-
-      const rolesData = await query
-        .orderBy(desc(roles.createdAt))
+      // Get roles with pagination
+      const rolesData = await RoleModel.find(filterConditions)
+        .sort({ createdAt: -1 })
         .limit(limit)
-        .offset(offset);
+        .skip(skip);
 
       // Get total count for pagination
-      const totalQuery = db.select({ count: count() }).from(roles);
-
-      if (conditions.length > 0) {
-        totalQuery.where(and(...conditions));
-      }
-
-      const totalResult = await totalQuery;
-      const total = totalResult[0]?.count || 0;
+      const total = await RoleModel.countDocuments(filterConditions);
 
       // Get policies for each role
       const rolesWithPolicies = await Promise.all(
         rolesData.map(async role => {
-          const rolePoliciesData = await db
-            .select({
-              id: policies.id,
-              name: policies.name,
-              description: policies.description,
-              version: policies.version,
-              isActive: policies.isActive,
-              conditions: policies.conditions,
-              actions: policies.actions,
-              resources: policies.resources,
-              effect: policies.effect,
-              priority: policies.priority,
-              createdBy: policies.createdBy,
-              createdAt: policies.createdAt,
-              updatedAt: policies.updatedAt,
-            })
-            .from(policies)
-            .innerJoin(rolePolicies, eq(policies.id, rolePolicies.policyId))
-            .where(eq(rolePolicies.roleId, role.id));
+          // Get role policies
+          const rolePoliciesData = await RolePolicy.find({ roleId: role._id })
+            .populate('policyId');
 
-          const rolePoliciesList = rolePoliciesData.map(p =>
-            this.convertToPolicy(p)
-          );
+          const rolePoliciesList: Policy[] = [];
+          for (const rp of rolePoliciesData) {
+            if (rp.policyId && typeof rp.policyId === 'object' && '_id' in rp.policyId) {
+              rolePoliciesList.push(this.convertToPolicy(rp.policyId as unknown as IPolicy));
+            }
+          }
+
           return this.convertToRole(role, rolePoliciesList);
         })
       );
@@ -198,49 +147,23 @@ export class RoleService {
    */
   async getRoleById(id: string): Promise<Role | null> {
     try {
-      const [roleData] = await db
-        .select({
-          id: roles.id,
-          name: roles.name,
-          description: roles.description,
-          isActive: roles.isActive,
-          isSystemRole: roles.isSystemRole,
-          metadata: roles.metadata,
-          createdBy: roles.createdBy,
-          createdAt: roles.createdAt,
-          updatedAt: roles.updatedAt,
-        })
-        .from(roles)
-        .where(eq(roles.id, id));
+      const roleData = await RoleModel.findById(id);
 
       if (!roleData) {
         return null;
       }
 
       // Get role policies
-      const rolePoliciesData = await db
-        .select({
-          id: policies.id,
-          name: policies.name,
-          description: policies.description,
-          version: policies.version,
-          isActive: policies.isActive,
-          conditions: policies.conditions,
-          actions: policies.actions,
-          resources: policies.resources,
-          effect: policies.effect,
-          priority: policies.priority,
-          createdBy: policies.createdBy,
-          createdAt: policies.createdAt,
-          updatedAt: policies.updatedAt,
-        })
-        .from(policies)
-        .innerJoin(rolePolicies, eq(policies.id, rolePolicies.policyId))
-        .where(eq(rolePolicies.roleId, id));
+      const rolePoliciesData = await RolePolicy.find({ roleId: id })
+        .populate('policyId');
 
-      const rolePoliciesList = rolePoliciesData.map(p =>
-        this.convertToPolicy(p)
-      );
+      const rolePoliciesList: Policy[] = [];
+      for (const rp of rolePoliciesData) {
+        if (rp.policyId && typeof rp.policyId === 'object' && '_id' in rp.policyId) {
+          rolePoliciesList.push(this.convertToPolicy(rp.policyId as unknown as IPolicy));
+        }
+      }
+
       return this.convertToRole(roleData, rolePoliciesList);
     } catch (error) {
       logger.error('Get role by ID failed:', error);
@@ -256,15 +179,12 @@ export class RoleService {
     description?: string;
     policyIds: string[];
     isSystemRole?: boolean;
-    metadata?: Record<string, unknown>;
+    metadata?: RoleMetadata;
     createdBy?: string;
   }): Promise<Role> {
     try {
       // Check if role name already exists
-      const [existingRole] = await db
-        .select({ id: roles.id })
-        .from(roles)
-        .where(eq(roles.name, roleData.name));
+      const existingRole = await RoleModel.findOne({ name: roleData.name });
 
       if (existingRole) {
         throw new HTTPException(409, { message: 'Role name already exists' });
@@ -272,10 +192,9 @@ export class RoleService {
 
       // Validate that all policy IDs exist
       if (roleData.policyIds.length > 0) {
-        const existingPolicies = await db
-          .select({ id: policies.id })
-          .from(policies)
-          .where(inArray(policies.id, roleData.policyIds));
+        const existingPolicies = await PolicyModel.find({
+          _id: { $in: roleData.policyIds }
+        });
 
         if (existingPolicies.length !== roleData.policyIds.length) {
           throw new HTTPException(400, {
@@ -285,33 +204,28 @@ export class RoleService {
       }
 
       // Create role
-      const [newRole] = await db
-        .insert(roles)
-        .values({
-          name: roleData.name,
-          description: roleData.description || null,
-          isSystemRole: roleData.isSystemRole || false,
-          metadata: roleData.metadata || {},
-          createdBy: roleData.createdBy || null,
-        })
-        .returning();
+      const newRole = new RoleModel({
+        name: roleData.name,
+        description: roleData.description,
+        isSystemRole: roleData.isSystemRole || false,
+        metadata: roleData.metadata || {},
+        createdBy: roleData.createdBy,
+      });
 
-      if (!newRole) {
-        throw new HTTPException(500, { message: 'Failed to create role' });
-      }
+      const savedRole = await newRole.save();
 
       // Associate policies with role
       if (roleData.policyIds.length > 0) {
-        await db.insert(rolePolicies).values(
-          roleData.policyIds.map(policyId => ({
-            roleId: newRole.id,
-            policyId,
-          }))
-        );
+        const rolePolicyDocs = roleData.policyIds.map(policyId => ({
+          roleId: savedRole._id,
+          policyId,
+        }));
+
+        await RolePolicy.insertMany(rolePolicyDocs);
       }
 
       // Return the created role with policies
-      const createdRole = await this.getRoleById(newRole.id);
+      const createdRole = await this.getRoleById(savedRole._id.toString());
       if (!createdRole) {
         throw new HTTPException(500, {
           message: 'Failed to retrieve created role',
@@ -338,7 +252,7 @@ export class RoleService {
       description?: string;
       policyIds?: string[];
       isActive?: boolean;
-      metadata?: Record<string, unknown>;
+      metadata?: RoleMetadata;
     }
   ): Promise<Role> {
     try {
@@ -350,10 +264,7 @@ export class RoleService {
 
       // Check if new name conflicts with existing role
       if (updates.name && updates.name !== existingRole.name) {
-        const [conflictingRole] = await db
-          .select({ id: roles.id })
-          .from(roles)
-          .where(eq(roles.name, updates.name));
+        const conflictingRole = await RoleModel.findOne({ name: updates.name });
 
         if (conflictingRole) {
           throw new HTTPException(409, { message: 'Role name already exists' });
@@ -362,10 +273,9 @@ export class RoleService {
 
       // Validate policy IDs if provided
       if (updates.policyIds && updates.policyIds.length > 0) {
-        const existingPolicies = await db
-          .select({ id: policies.id })
-          .from(policies)
-          .where(inArray(policies.id, updates.policyIds));
+        const existingPolicies = await PolicyModel.find({
+          _id: { $in: updates.policyIds }
+        });
 
         if (existingPolicies.length !== updates.policyIds.length) {
           throw new HTTPException(400, {
@@ -379,8 +289,7 @@ export class RoleService {
         name: string;
         description: string;
         isActive: boolean;
-        metadata: Record<string, unknown>;
-        updatedAt: Date;
+        metadata: RoleMetadata;
       }> = {};
       if (updates.name !== undefined) updateData.name = updates.name;
       if (updates.description !== undefined)
@@ -391,22 +300,22 @@ export class RoleService {
         updateData.metadata = updates.metadata;
 
       if (Object.keys(updateData).length > 0) {
-        await db.update(roles).set(updateData).where(eq(roles.id, id));
+        await RoleModel.findByIdAndUpdate(id, updateData, { runValidators: true });
       }
 
       // Update role policies if provided
       if (updates.policyIds !== undefined) {
         // Remove existing policy associations
-        await db.delete(rolePolicies).where(eq(rolePolicies.roleId, id));
+        await RolePolicy.deleteMany({ roleId: id });
 
         // Add new policy associations
         if (updates.policyIds.length > 0) {
-          await db.insert(rolePolicies).values(
-            updates.policyIds.map(policyId => ({
-              roleId: id,
-              policyId,
-            }))
-          );
+          const rolePolicyDocs = updates.policyIds.map(policyId => ({
+            roleId: id,
+            policyId,
+          }));
+
+          await RolePolicy.insertMany(rolePolicyDocs);
         }
       }
 
@@ -439,11 +348,7 @@ export class RoleService {
       }
 
       // Check if role is assigned to any users
-      const [userAssignment] = await db
-        .select({ userId: userRoles.userId })
-        .from(userRoles)
-        .where(eq(userRoles.roleId, id))
-        .limit(1);
+      const userAssignment = await UserRole.findOne({ roleId: id });
 
       if (userAssignment) {
         throw new HTTPException(400, {
@@ -453,10 +358,10 @@ export class RoleService {
       }
 
       // Delete role policy associations
-      await db.delete(rolePolicies).where(eq(rolePolicies.roleId, id));
+      await RolePolicy.deleteMany({ roleId: id });
 
       // Delete role
-      await db.delete(roles).where(eq(roles.id, id));
+      await RoleModel.findByIdAndDelete(id);
 
       logger.info('Role deleted', { roleId: id });
     } catch (error) {
@@ -485,22 +390,21 @@ export class RoleService {
       }
 
       // Check if assignment already exists
-      const [existingAssignment] = await db
-        .select({ id: userRoles.id })
-        .from(userRoles)
-        .where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, roleId)));
+      const existingAssignment = await UserRole.findOne({ userId, roleId });
 
       if (existingAssignment) {
         throw new HTTPException(409, { message: 'User already has this role' });
       }
 
       // Create assignment
-      await db.insert(userRoles).values({
+      const userRole = new UserRole({
         userId,
         roleId,
-        assignedBy: assignedBy || null,
-        expiresAt: expiresAt || null,
+        assignedBy,
+        expiresAt,
       });
+
+      await userRole.save();
 
       logger.info('Role assigned to user', { userId, roleId, assignedBy });
     } catch (error) {
@@ -519,9 +423,7 @@ export class RoleService {
    */
   async removeRoleFromUser(userId: string, roleId: string): Promise<void> {
     try {
-      await db
-        .delete(userRoles)
-        .where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, roleId)));
+      await UserRole.deleteOne({ userId, roleId });
 
       logger.info('Role removed from user', { userId, roleId });
     } catch (error) {

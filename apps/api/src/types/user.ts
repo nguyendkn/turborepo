@@ -1,4 +1,5 @@
 import type { Role } from './role';
+import type { UserAttributes } from './database';
 
 /**
  * User type for authentication
@@ -12,5 +13,5 @@ export interface User {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
-  attributes?: Record<string, unknown>;
+  attributes?: UserAttributes;
 }

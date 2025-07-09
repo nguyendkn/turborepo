@@ -1,12 +1,13 @@
 import type { Context } from 'hono';
 
+import type { HonoBindings, ApiErrorDetails } from './database';
 import type { User } from './user';
 
 /**
  * Application environment type
  */
 export interface AppEnv {
-  Bindings: Record<string, unknown>;
+  Bindings: HonoBindings;
   Variables: {
     user?: User;
     requestId: string;
@@ -28,7 +29,7 @@ export interface ApiResponse<T = unknown> {
   error?: {
     code: string;
     message: string;
-    details?: unknown;
+    details?: ApiErrorDetails;
   };
   meta?: {
     page?: number;
@@ -65,4 +66,13 @@ export interface FilterParams {
   role?: string;
   isActive?: boolean;
   [key: string]: string | number | boolean | undefined;
+}
+
+/**
+ * User-specific filter parameters
+ */
+export interface UserFilterParams {
+  search?: string;
+  isActive?: boolean;
+  emailVerified?: boolean;
 }

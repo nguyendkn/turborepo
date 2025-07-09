@@ -22,21 +22,21 @@ export interface Policy {
  */
 export interface PolicyConditions {
   user?: {
-    attributes?: Record<string, unknown>;
+    attributes?: UserAttributes;
     groups?: string[];
   };
   resource?: {
     type?: string;
-    attributes?: Record<string, unknown>;
+    attributes?: ResourceAttributes;
   };
-  environment?: {
-    timeRange?: {
-      start?: string;
-      end?: string;
-    };
-    ipWhitelist?: string[];
-    ipBlacklist?: string[];
-    location?: string[];
-  };
-  custom?: Record<string, unknown>;
+  environment?: EnvironmentAttributes;
+  custom?: CustomAttributes;
 }
+
+// Import the specific attribute types
+import type {
+  UserAttributes,
+  ResourceAttributes,
+  EnvironmentAttributes,
+  CustomAttributes
+} from './database';

@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 
 import { createApp } from '@/app';
 import { config } from '@/config/app';
+import { connectToDatabase } from '@/config/database';
 import { gracefulShutdown } from '@/utils/graceful-shutdown';
 import { logger } from '@/utils/logger';
 
@@ -10,6 +11,9 @@ import { logger } from '@/utils/logger';
  */
 async function startServer(): Promise<void> {
   try {
+    // Connect to MongoDB
+    await connectToDatabase();
+
     // Create the Hono app
     const app = createApp();
 

@@ -1,7 +1,5 @@
-import { eq } from 'drizzle-orm';
-
-import { db } from '@/config/database';
-import { profiles } from '@/database/schema';
+import { Profile, type IProfile } from '@/database/models';
+import type { UserPreferences } from '@/types/database';
 
 /**
  * Profile repository
@@ -10,13 +8,13 @@ export const profileRepository = {
   /**
    * Find profile by user ID
    */
-  async findByUserId(userId: string) {
-    const result = await db
-      .select()
-      .from(profiles)
-      .where(eq(profiles.userId, userId))
-      .limit(1);
-    return result[0] || null;
+  async findByUserId(userId: string): Promise<IProfile | null> {
+    try {
+      const profile = await Profile.findOne({ userId });
+      return profile;
+    } catch {
+      return null;
+    }
   },
 
   /**
@@ -29,43 +27,27 @@ export const profileRepository = {
       avatar: string | null;
       phone: string | null;
       dateOfBirth: Date | null;
-      preferences: Record<string, unknown> | null;
+      preferences: UserPreferences | null;
     }>
-  ) {
-    const existing = await this.findByUserId(userId);
+  ): Promise<IProfile> {
+    const profile = await Profile.findOneAndUpdate(
+      { userId },
+      { ...profileData },
+      {
+        new: true,
+        upsert: true,
+        runValidators: true,
+        setDefaultsOnInsert: true
+      }
+    );
 
-    if (existing) {
-      // Update existing profile
-      const result = await db
-        .update(profiles)
-        .set({
-          ...profileData,
-          updatedAt: new Date(),
-        })
-        .where(eq(profiles.userId, userId))
-        .returning();
-
-      return result[0];
-    } else {
-      // Create new profile
-      const result = await db
-        .insert(profiles)
-        .values({
-          userId,
-          ...profileData,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-
-      return result[0];
-    }
+    return profile;
   },
 
   /**
    * Delete profile
    */
-  async delete(userId: string) {
-    await db.delete(profiles).where(eq(profiles.userId, userId));
+  async delete(userId: string): Promise<void> {
+    await Profile.findOneAndDelete({ userId });
   },
 };

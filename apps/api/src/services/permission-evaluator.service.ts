@@ -1,16 +1,14 @@
-import { eq, and, gte } from 'drizzle-orm';
 import { HTTPException } from 'hono/http-exception';
 
 import { policyEngineService } from './policy-engine.service';
 
-import { db } from '@/config/database';
 import {
-  policyEvaluationCache,
-  roles,
-  rolePolicies,
-  userRoles,
-  policies,
-} from '@/database/schema';
+  PolicyEvaluationCache,
+  RolePolicy,
+  UserRole,
+  type IRole,
+  type IPolicy,
+} from '@/database/models';
 import type {
   PolicyEvaluationContext,
   PolicyEvaluationResult,
@@ -20,36 +18,8 @@ import type {
   Policy,
   PolicyConditions,
 } from '@/types';
+import type { RoleMetadata } from '@/types/database';
 import { logger } from '@/utils/logger';
-
-// Database result types
-interface DbPolicy {
-  id: string;
-  name: string | null;
-  description?: string | null;
-  version: number | null;
-  isActive: boolean;
-  conditions: unknown;
-  actions: unknown;
-  resources: unknown;
-  effect: string | null;
-  priority: number | null;
-  createdAt: Date | null;
-  updatedAt: Date | null;
-  createdBy?: string | null;
-}
-
-interface DbRole {
-  id: string;
-  name: string;
-  description?: string | null;
-  isActive: boolean;
-  isSystemRole: boolean;
-  metadata?: unknown | null;
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy?: string | null;
-}
 
 /**
  * Permission Evaluator Service
@@ -317,9 +287,7 @@ export class PermissionEvaluatorService {
    */
   async clearUserCache(userId: string): Promise<void> {
     try {
-      await db
-        .delete(policyEvaluationCache)
-        .where(eq(policyEvaluationCache.userId, userId));
+      await PolicyEvaluationCache.deleteMany({ userId });
 
       logger.debug('Cleared permission cache for user', { userId });
     } catch (error) {
@@ -340,17 +308,11 @@ export class PermissionEvaluatorService {
         Date.now() - this.cacheExpirationMinutes * 60 * 1000
       );
 
-      const [cachedResult] = await db
-        .select({ result: policyEvaluationCache.result })
-        .from(policyEvaluationCache)
-        .where(
-          and(
-            eq(policyEvaluationCache.userId, userId),
-            eq(policyEvaluationCache.cacheKey, cacheKey),
-            gte(policyEvaluationCache.createdAt, expirationTime)
-          )
-        )
-        .limit(1);
+      const cachedResult = await PolicyEvaluationCache.findOne({
+        userId,
+        cacheKey,
+        createdAt: { $gte: expirationTime },
+      });
 
       return cachedResult ? cachedResult.result : null;
     } catch (error) {
@@ -371,21 +333,16 @@ export class PermissionEvaluatorService {
       const cacheKey = this.generateCacheKey(request);
 
       // Delete existing cache entry
-      await db
-        .delete(policyEvaluationCache)
-        .where(
-          and(
-            eq(policyEvaluationCache.userId, userId),
-            eq(policyEvaluationCache.cacheKey, cacheKey)
-          )
-        );
+      await PolicyEvaluationCache.deleteOne({ userId, cacheKey });
 
       // Insert new cache entry
-      await db.insert(policyEvaluationCache).values({
+      const cacheEntry = new PolicyEvaluationCache({
         userId,
         cacheKey,
         result,
       });
+
+      await cacheEntry.save();
     } catch (error) {
       logger.error('Failed to cache result:', error);
     }
@@ -407,49 +364,49 @@ export class PermissionEvaluatorService {
   // ===== ROLE MANAGEMENT METHODS =====
 
   /**
-   * Convert database policy result to Policy interface
+   * Convert Mongoose policy document to Policy interface
    */
-  private convertToPolicy(dbPolicy: DbPolicy): Policy {
+  private convertToPolicy(dbPolicy: IPolicy): Policy {
     const result: Policy = {
-      id: dbPolicy.id,
-      name: dbPolicy.name || '',
+      id: dbPolicy._id.toString(),
+      name: dbPolicy.name,
       description: dbPolicy.description || '',
-      version: dbPolicy.version || 1,
+      version: dbPolicy.version,
       isActive: dbPolicy.isActive,
       conditions: dbPolicy.conditions as PolicyConditions,
-      actions: dbPolicy.actions as string[],
-      resources: dbPolicy.resources as string[],
-      effect: (dbPolicy.effect as 'allow' | 'deny') || 'allow',
-      priority: dbPolicy.priority || 0,
-      createdAt: dbPolicy.createdAt || new Date(),
-      updatedAt: dbPolicy.updatedAt || new Date(),
+      actions: dbPolicy.actions as unknown as string[],
+      resources: dbPolicy.resources as unknown as string[],
+      effect: dbPolicy.effect,
+      priority: dbPolicy.priority,
+      createdAt: dbPolicy.createdAt,
+      updatedAt: dbPolicy.updatedAt,
     };
 
     if (dbPolicy.createdBy) {
-      result.createdBy = dbPolicy.createdBy;
+      result.createdBy = dbPolicy.createdBy.toString();
     }
 
     return result;
   }
 
   /**
-   * Convert database role result to Role interface
+   * Convert Mongoose role document to Role interface
    */
-  private convertToRole(dbRole: DbRole, policies: Policy[] = []): Role {
+  private convertToRole(dbRole: IRole, policies: Policy[] = []): Role {
     const result: Role = {
-      id: dbRole.id,
+      id: dbRole._id.toString(),
       name: dbRole.name,
       description: dbRole.description || '',
       isActive: dbRole.isActive,
       isSystemRole: dbRole.isSystemRole,
       policies,
-      metadata: (dbRole.metadata as Record<string, unknown>) || {},
+      metadata: (dbRole.metadata as RoleMetadata) || {},
       createdAt: dbRole.createdAt,
       updatedAt: dbRole.updatedAt,
     };
 
     if (dbRole.createdBy) {
-      result.createdBy = dbRole.createdBy;
+      result.createdBy = dbRole.createdBy.toString();
     }
 
     return result;
@@ -460,85 +417,38 @@ export class PermissionEvaluatorService {
    */
   async getUserRoles(userId: string): Promise<Role[]> {
     try {
-      const userRoleData = await db
-        .select({
-          roleId: userRoles.roleId,
-          roleName: roles.name,
-          roleDescription: roles.description,
-          roleIsActive: roles.isActive,
-          roleIsSystemRole: roles.isSystemRole,
-          roleMetadata: roles.metadata,
-          roleCreatedBy: roles.createdBy,
-          roleCreatedAt: roles.createdAt,
-          roleUpdatedAt: roles.updatedAt,
-          policyId: policies.id,
-          policyName: policies.name,
-          policyDescription: policies.description,
-          policyVersion: policies.version,
-          policyIsActive: policies.isActive,
-          policyConditions: policies.conditions,
-          policyActions: policies.actions,
-          policyResources: policies.resources,
-          policyEffect: policies.effect,
-          policyPriority: policies.priority,
-          policyCreatedBy: policies.createdBy,
-          policyCreatedAt: policies.createdAt,
-          policyUpdatedAt: policies.updatedAt,
-        })
-        .from(userRoles)
-        .innerJoin(roles, eq(userRoles.roleId, roles.id))
-        .leftJoin(rolePolicies, eq(roles.id, rolePolicies.roleId))
-        .leftJoin(policies, eq(rolePolicies.policyId, policies.id))
-        .where(and(eq(userRoles.userId, userId), eq(roles.isActive, true)));
+      // Get user roles
+      const userRoleData = await UserRole.find({ userId })
+        .populate('roleId');
 
-      // Group by role and collect policies
-      const roleMap = new Map<string, { role: DbRole; policies: Policy[] }>();
+      const roles: Role[] = [];
 
-      for (const row of userRoleData) {
-        if (!roleMap.has(row.roleId)) {
-          roleMap.set(row.roleId, {
-            role: {
-              id: row.roleId,
-              name: row.roleName,
-              description: row.roleDescription,
-              isActive: row.roleIsActive,
-              isSystemRole: row.roleIsSystemRole,
-              metadata: row.roleMetadata,
-              createdBy: row.roleCreatedBy,
-              createdAt: row.roleCreatedAt,
-              updatedAt: row.roleUpdatedAt,
-            },
-            policies: [],
-          });
-        }
+      for (const userRole of userRoleData) {
+        if (!userRole.roleId) continue;
 
-        if (row.policyId && row.policyIsActive) {
-          const policy = this.convertToPolicy({
-            id: row.policyId,
-            name: row.policyName,
-            description: row.policyDescription,
-            version: row.policyVersion,
-            isActive: row.policyIsActive,
-            conditions: row.policyConditions,
-            actions: row.policyActions,
-            resources: row.policyResources,
-            effect: row.policyEffect,
-            priority: row.policyPriority,
-            createdBy: row.policyCreatedBy,
-            createdAt: row.policyCreatedAt,
-            updatedAt: row.policyUpdatedAt,
-          });
+        const roleDoc = userRole.roleId as unknown as IRole;
 
-          const roleData = roleMap.get(row.roleId);
-          if (roleData) {
-            roleData.policies.push(policy);
+        // Skip inactive roles
+        if (!roleDoc.isActive) continue;
+
+        // Get policies for this role
+        const rolePoliciesData = await RolePolicy.find({ roleId: roleDoc._id })
+          .populate('policyId');
+
+        const policies: Policy[] = [];
+        for (const rolePolicy of rolePoliciesData) {
+          if (rolePolicy.policyId) {
+            const policyDoc = rolePolicy.policyId as unknown as IPolicy;
+            if (policyDoc.isActive) {
+              policies.push(this.convertToPolicy(policyDoc));
+            }
           }
         }
+
+        roles.push(this.convertToRole(roleDoc, policies));
       }
 
-      return Array.from(roleMap.values()).map(({ role, policies }) =>
-        this.convertToRole(role, policies)
-      );
+      return roles;
     } catch (error) {
       logger.error('Get user roles failed:', error);
       throw new HTTPException(500, {

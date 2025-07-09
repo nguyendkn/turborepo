@@ -19,21 +19,17 @@ const envSchema = z.object({
     .default('3000'),
   HOST: z.string().default('localhost'),
 
-  // Database configuration
-  DATABASE_URL: z.string().url().optional(),
+  // Database configuration (MongoDB)
+  DATABASE_URL: z.string().optional(), // MongoDB connection string
   DB_HOST: z.string().default('localhost'),
   DB_PORT: z
     .string()
     .transform(Number)
     .pipe(z.number().min(1).max(65535))
-    .default('5432'),
+    .default('27017'), // MongoDB default port
   DB_NAME: z.string().default('csmart'),
-  DB_USER: z.string().default('postgres'),
-  DB_PASSWORD: z.string().default('password'),
-  DB_SSL: z
-    .string()
-    .transform(val => val === 'true')
-    .default('false'),
+  DB_USER: z.string().default(''),
+  DB_PASSWORD: z.string().default(''),
 
   // Redis configuration
   REDIS_URL: z.string().url().optional(),
@@ -130,7 +126,6 @@ export const config = {
     name: env.DB_NAME,
     user: env.DB_USER,
     password: env.DB_PASSWORD,
-    ssl: env.DB_SSL,
   },
 
   redis: {

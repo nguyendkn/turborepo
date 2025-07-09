@@ -1,4 +1,5 @@
 import type { Policy } from './policy';
+import type { RoleMetadata } from './database';
 
 /**
  * Dynamic role definition
@@ -10,7 +11,7 @@ export interface Role {
   isActive: boolean;
   isSystemRole: boolean;
   policies: Policy[];
-  metadata?: Record<string, unknown>;
+  metadata?: RoleMetadata;
   createdAt: Date;
   updatedAt: Date;
   createdBy?: string;

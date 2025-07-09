@@ -3,7 +3,7 @@ import { HTTPException } from 'hono/http-exception';
 
 import { config } from '@/config/app';
 import { userRepository } from '@/repositories/user.repository';
-import type { PaginationParams, FilterParams, SortParams } from '@/types';
+import type { PaginationParams, UserFilterParams, SortParams } from '@/types';
 import { logger } from '@/utils/logger';
 import { generateRandomPassword } from '@/utils/password';
 
@@ -22,13 +22,18 @@ export const userService = {
     };
     pagination.offset = (pagination.page - 1) * pagination.limit;
 
-    const filters: FilterParams = {};
+    const filters: UserFilterParams = {};
     if (query.search) filters.search = query.search;
     // Role filtering removed - use PBAC system instead
     if (query.isActive === 'true') {
       filters.isActive = true;
     } else if (query.isActive === 'false') {
       filters.isActive = false;
+    }
+    if (query.emailVerified === 'true') {
+      filters.emailVerified = true;
+    } else if (query.emailVerified === 'false') {
+      filters.emailVerified = false;
     }
 
     const sort: SortParams = {

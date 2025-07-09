@@ -1,9 +1,6 @@
-import { eq, and, or, like, desc, asc } from 'drizzle-orm';
-
-import { db } from '@/config/database';
-import { users } from '@/database/schema';
-// UserRole removed - using PBAC system instead
-import type { PaginationParams, FilterParams, SortParams } from '@/types';
+import { User, type IUser } from '@/database/models';
+import type { PaginationParams, UserFilterParams, SortParams } from '@/types';
+import type { UserFilterConditions, MongoSortOptions } from '@/types/database';
 
 /**
  * User repository
@@ -12,25 +9,25 @@ export const userRepository = {
   /**
    * Find user by ID
    */
-  async findById(id: string) {
-    const result = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1);
-    return result[0] || null;
+  async findById(id: string): Promise<IUser | null> {
+    try {
+      const user = await User.findById(id);
+      return user;
+    } catch {
+      return null;
+    }
   },
 
   /**
    * Find user by email
    */
-  async findByEmail(email: string) {
-    const result = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
-    return result[0] || null;
+  async findByEmail(email: string): Promise<IUser | null> {
+    try {
+      const user = await User.findOne({ email: email.toLowerCase() });
+      return user;
+    } catch {
+      return null;
+    }
   },
 
   /**
@@ -38,67 +35,47 @@ export const userRepository = {
    */
   async findMany(options: {
     pagination: PaginationParams;
-    filters: FilterParams;
+    filters: UserFilterParams;
     sort: SortParams;
   }) {
     const { pagination, filters, sort } = options;
 
-    // Build where conditions
-    const conditions = [];
+    // Build filter conditions
+    const filterConditions: UserFilterConditions = {};
 
     if (filters.search) {
-      conditions.push(
-        or(
-          like(users.email, `%${filters.search}%`),
-          like(users.firstName, `%${filters.search}%`),
-          like(users.lastName, `%${filters.search}%`)
-        )
-      );
+      filterConditions.$or = [
+        { email: { $regex: filters.search, $options: 'i' } },
+        { firstName: { $regex: filters.search, $options: 'i' } },
+        { lastName: { $regex: filters.search, $options: 'i' } },
+      ];
     }
-
-    // Role filtering removed - use PBAC system instead
 
     if (filters.isActive !== undefined) {
-      conditions.push(eq(users.isActive, filters.isActive));
+      filterConditions.isActive = filters.isActive;
     }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    if (filters.emailVerified !== undefined) {
+      filterConditions.emailVerified = filters.emailVerified;
+    }
 
-    // Build order by
-    const validSortFields = {
-      id: users.id,
-      email: users.email,
-      firstName: users.firstName,
-      lastName: users.lastName,
-      isActive: users.isActive,
-      emailVerified: users.emailVerified,
-      createdAt: users.createdAt,
-      updatedAt: users.updatedAt,
-    };
-
-    const sortField =
-      validSortFields[sort.field as keyof typeof validSortFields] ||
-      users.createdAt;
-    const orderBy = sort.order === 'desc' ? desc(sortField) : asc(sortField);
+    // Build sort options
+    const sortField = sort.field || 'createdAt';
+    const sortDirection = sort.order === 'asc' ? 1 : -1;
+    const sortOptions: MongoSortOptions = {};
+    sortOptions[sortField] = sortDirection;
 
     // Get total count
-    const totalResult = await db
-      .select({ count: users.id })
-      .from(users)
-      .where(whereClause);
-    const total = totalResult.length;
+    const total = await User.countDocuments(filterConditions);
 
-    // Get users
-    const userResults = await db
-      .select()
-      .from(users)
-      .where(whereClause)
-      .orderBy(orderBy)
+    // Get users with pagination
+    const users = await User.find(filterConditions)
+      .sort(sortOptions)
       .limit(pagination.limit)
-      .offset(pagination.offset);
+      .skip(pagination.offset);
 
     return {
-      users: userResults,
+      users,
       total,
     };
   },
@@ -113,17 +90,13 @@ export const userRepository = {
     lastName: string;
     isActive: boolean;
     emailVerified: boolean;
-  }) {
-    const result = await db
-      .insert(users)
-      .values({
-        ...userData,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
+  }): Promise<IUser> {
+    const user = new User({
+      ...userData,
+      email: userData.email.toLowerCase(),
+    });
 
-    return result[0];
+    return await user.save();
   },
 
   /**
@@ -138,63 +111,53 @@ export const userRepository = {
       isActive: boolean;
       emailVerified: boolean;
     }>
-  ) {
-    const result = await db
-      .update(users)
-      .set({
-        ...userData,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, id))
-      .returning();
+  ): Promise<IUser | null> {
+    try {
+      const updateData = { ...userData };
+      if (updateData.email) {
+        updateData.email = updateData.email.toLowerCase();
+      }
 
-    return result[0] || null;
+      const user = await User.findByIdAndUpdate(
+        id,
+        updateData,
+        { new: true, runValidators: true }
+      );
+
+      return user;
+    } catch {
+      return null;
+    }
   },
 
   /**
    * Update user password
    */
-  async updatePassword(id: string, passwordHash: string) {
-    await db
-      .update(users)
-      .set({
-        passwordHash,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, id));
+  async updatePassword(id: string, passwordHash: string): Promise<void> {
+    await User.findByIdAndUpdate(id, { passwordHash });
   },
 
   /**
    * Update last login timestamp
    */
-  async updateLastLogin(id: string) {
-    await db
-      .update(users)
-      .set({
-        lastLoginAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, id));
+  async updateLastLogin(id: string): Promise<void> {
+    await User.findByIdAndUpdate(id, { lastLoginAt: new Date() });
   },
 
   /**
    * Mark email as verified
    */
-  async markEmailVerified(id: string) {
-    await db
-      .update(users)
-      .set({
-        emailVerified: true,
-        emailVerifiedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, id));
+  async markEmailVerified(id: string): Promise<void> {
+    await User.findByIdAndUpdate(id, {
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
+    });
   },
 
   /**
    * Delete user
    */
-  async delete(id: string) {
-    await db.delete(users).where(eq(users.id, id));
+  async delete(id: string): Promise<void> {
+    await User.findByIdAndDelete(id);
   },
 };
