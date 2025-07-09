@@ -17,17 +17,17 @@ export class PolicyRepositoryService {
   private convertToPolicy(dbPolicy: {
     id: string;
     name: string;
-    description?: string;
+    description?: string | null;
     version: number;
     isActive: boolean;
     conditions: unknown;
     actions: unknown;
     resources: unknown;
-    effect: 'allow' | 'deny';
+    effect: string;
     priority: number;
     createdAt: Date;
     updatedAt: Date;
-    createdBy?: string;
+    createdBy?: string | null;
   }): Policy {
     const result: Policy = {
       id: dbPolicy.id,
@@ -91,6 +91,9 @@ export class PolicyRepositoryService {
         })
         .returning();
 
+      if (!newPolicy) {
+        throw new HTTPException(500, { message: 'Failed to create policy' });
+      }
       return this.convertToPolicy(newPolicy);
     } catch (error) {
       logger.error('Create policy failed:', error);
@@ -273,6 +276,7 @@ export class PolicyRepositoryService {
         effect: 'allow' | 'deny';
         priority: number;
         isActive: boolean;
+        version: number;
         updatedAt: Date;
       }> = {};
       if (updates.name !== undefined) updateData.name = updates.name;
@@ -299,6 +303,9 @@ export class PolicyRepositoryService {
         .where(eq(policies.id, id))
         .returning();
 
+      if (!updatedPolicy) {
+        throw new HTTPException(500, { message: 'Failed to update policy' });
+      }
       return this.convertToPolicy(updatedPolicy);
     } catch (error) {
       logger.error('Update policy failed:', error);

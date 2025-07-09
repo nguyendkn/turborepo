@@ -17,17 +17,17 @@ export class RoleService {
   private convertToPolicy(dbPolicy: {
     id: string;
     name: string;
-    description?: string;
+    description?: string | null;
     version: number;
     isActive: boolean;
     conditions: unknown;
     actions: unknown;
     resources: unknown;
-    effect: 'allow' | 'deny';
+    effect: string;
     priority: number;
     createdAt: Date;
     updatedAt: Date;
-    createdBy?: string;
+    createdBy?: string | null;
   }): Policy {
     const result: Policy = {
       id: dbPolicy.id,
@@ -54,17 +54,20 @@ export class RoleService {
   /**
    * Convert database role result to Role interface
    */
-  private convertToRole(dbRole: {
-    id: string;
-    name: string;
-    description?: string;
-    isActive: boolean;
-    isSystemRole: boolean;
-    metadata?: unknown;
-    createdAt: Date;
-    updatedAt: Date;
-    createdBy?: string;
-  }, policies: Policy[] = []): Role {
+  private convertToRole(
+    dbRole: {
+      id: string;
+      name: string;
+      description?: string | null;
+      isActive: boolean;
+      isSystemRole: boolean;
+      metadata?: unknown | null;
+      createdAt: Date;
+      updatedAt: Date;
+      createdBy?: string | null;
+    },
+    policies: Policy[] = []
+  ): Role {
     const result: Role = {
       id: dbRole.id,
       name: dbRole.name,
@@ -72,7 +75,7 @@ export class RoleService {
       isActive: dbRole.isActive,
       isSystemRole: dbRole.isSystemRole,
       policies,
-      metadata: dbRole.metadata || {},
+      metadata: (dbRole.metadata as Record<string, unknown>) || ({} as Record<string, unknown>),
       createdAt: dbRole.createdAt,
       updatedAt: dbRole.updatedAt,
     };

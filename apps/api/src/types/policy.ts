@@ -30,12 +30,13 @@ export interface PolicyConditions {
     attributes?: Record<string, unknown>;
   };
   environment?: {
-    time?: {
+    timeRange?: {
       start?: string;
       end?: string;
     };
+    ipWhitelist?: string[];
+    ipBlacklist?: string[];
     location?: string[];
-    ipRange?: string[];
   };
   custom?: Record<string, unknown>;
 }
