@@ -153,7 +153,7 @@ export default [
     },
     settings: {
       react: {
-        version: 'detect',
+        version: '18.0',
       },
     },
     rules: {
@@ -206,7 +206,7 @@ export default [
     },
     settings: {
       react: {
-        version: 'detect',
+        version: '18.0',
       },
     },
   },
