@@ -1,0 +1,54 @@
+{
+  "name": "@repo/table",
+  "sideEffects": false,
+  "source": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "tailwind.config.js"
+  ],
+  "scripts": {
+    "build": "cross-env NODE_ENV=production tsc --build tsconfig.build.json",
+    "clean": "rimraf ./dist ./coverage ./tsconfig.tsbuildinfo ./tsconfig.build.tsbuildinfo ./node_modules/.cache ./.eslintcache",
+    "dev": "tsc --build tsconfig.build.json --watch",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx,.cjs,.mjs --cache --cache-location ../../.cache/eslint/table.eslintcache",
+    "typecheck": "tsc --project ./tsconfig.json --noEmit",
+    "test": "vitest run --silent",
+    "test-cover": "vitest run --coverage",
+    "fix-all-files": "eslint . --ext .ts,.tsx,.js,.jsx,.cjs,.mjs --fix"
+  },
+  "dependencies": {
+    "@repo/typescript": "workspace:^",
+    "@tanstack/react-table": "^8.11.7",
+    "@tanstack/react-virtual": "^3.2.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "lodash": "^4.17.21",
+    "react-use": "^17.5.1",
+    "tailwind-merge": "^2.2.2"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.0",
+    "@types/node": "^20.9.0",
+    "@types/react": "^18.2.69",
+    "@types/react-dom": "^18.2.22",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.57.0",
+    "rimraf": "^5.0.5",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.4.3",
+    "vitest": "^2.1.5"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "extends": "@repo/typescript/base.json",
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "esnext",
+    "jsx": "react-jsx",
+    "rootDir": "../",
+    "outDir": "dist",
+    "noEmit": false,
+    "declaration": true,
+    "declarationDir": "dist",
+    "composite": true,
+    "sourceMap": true,
+    "incremental": true,
+    "moduleResolution": "Bundler",
+    "types": ["vitest/globals"]
+  },
+  "exclude": ["**/node_modules", "**/.*/", "dist", "build"],
+  "include": ["./src"]
+}
