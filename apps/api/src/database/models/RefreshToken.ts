@@ -25,7 +25,6 @@ const refreshTokenSchema = new Schema<IRefreshToken>(
     tokenId: {
       type: String,
       required: true,
-      unique: true,
     },
     isRevoked: {
       type: Boolean,

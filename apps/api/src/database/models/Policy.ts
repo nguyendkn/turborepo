@@ -28,7 +28,6 @@ const policySchema = new Schema<IPolicy>(
     name: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
     description: {

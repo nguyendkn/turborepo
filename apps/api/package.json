@@ -78,19 +78,5 @@
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "vitest": "^1.6.1"
-  },
-  "keywords": [
-    "hono",
-    "typescript",
-    "api",
-    "enterprise",
-    "microservice"
-  ],
-  "author": "CSmart Team",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/your-org/csmart.git",
-    "directory": "apps/api"
   }
 }

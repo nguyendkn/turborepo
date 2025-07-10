@@ -10,9 +10,8 @@ import React, { useEffect } from 'react';
 
 import { LoginForm } from '@/components/login-form';
 import { useLogin } from '@/hooks/api/use-auth-api';
-import { useForm, validationSchemas } from '@/hooks/ui/use-form';
 import { authStore, authSelectors } from '@/store';
-import type { LoginRequest, RouteSearchParams } from '@/types';
+import type { RouteSearchParams } from '@/types';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,24 +23,13 @@ export const LoginPage: React.FC = () => {
 
   const loginMutation = useLogin();
 
-  const form = useForm<LoginRequest>({
-    initialValues: {
-      email: '',
-      password: '',
-    },
-    validationSchema: validationSchemas.login,
-    onSubmit: async values => {
-      await loginMutation.mutateAsync(values);
-    },
-    onSuccess: () => {
-      navigate({ to: redirectTo });
-    },
-  });
-
   const handleFormSubmit = async (data: { email: string; password: string }) => {
-    form.setFieldValue('email', data.email);
-    form.setFieldValue('password', data.password);
-    await form.handleSubmit();
+    try {
+      await loginMutation.mutateAsync(data);
+      navigate({ to: redirectTo });
+    } catch {
+      // Error is handled by the mutation's onError callback
+    }
   };
 
   // Redirect if already authenticated
@@ -50,8 +38,6 @@ export const LoginPage: React.FC = () => {
       navigate({ to: redirectTo });
     }
   }, [isAuthenticated, navigate, redirectTo]);
-
-  const formState = form.getFormState();
 
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
@@ -68,18 +54,12 @@ export const LoginPage: React.FC = () => {
           <div className="w-full max-w-xs">
             <LoginForm
               onSubmit={handleFormSubmit}
-              isLoading={formState.isSubmitting || loginMutation.isPending}
+              isLoading={loginMutation.isPending}
               error={
                 authError ||
                 loginMutation.error?.message ||
                 (loginMutation.error ? 'Login failed. Please try again.' : undefined)
               }
-              email={formState.data.email}
-              password={formState.data.password}
-              onEmailChange={(email) => form.setFieldValue('email', email)}
-              onPasswordChange={(password) => form.setFieldValue('password', password)}
-              emailError={formState.errors.email}
-              passwordError={formState.errors.password}
               showHeader={false}
             />
           </div>

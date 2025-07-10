@@ -71,25 +71,6 @@ export default [
 
       '@typescript-eslint/no-var-requires': 'error',
 
-      // Import rules
-      'import/order': [
-        'error',
-        {
-          groups: [
-            'builtin',
-            'external',
-            'internal',
-            'parent',
-            'sibling',
-            'index',
-          ],
-          'newlines-between': 'always',
-          alphabetize: {
-            order: 'asc',
-            caseInsensitive: true,
-          },
-        },
-      ],
       'import/no-unresolved': 'off', // TypeScript handles this
       'import/no-duplicates': 'error',
 
@@ -180,26 +161,6 @@ export default [
         { argsIgnorePattern: '^_' },
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
-
-      // Import rules
-      'import/order': [
-        'error',
-        {
-          groups: [
-            'builtin',
-            'external',
-            'internal',
-            'parent',
-            'sibling',
-            'index',
-          ],
-          'newlines-between': 'always',
-          alphabetize: {
-            order: 'asc',
-            caseInsensitive: true,
-          },
-        },
-      ],
 
       // Turbo rules
       'turbo/no-undeclared-env-vars': 'warn',

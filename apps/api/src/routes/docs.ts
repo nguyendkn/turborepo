@@ -1,4 +1,3 @@
-import { swaggerUI } from '@hono/swagger-ui';
 import { Hono } from 'hono';
 
 import { config } from '@/config/app';
@@ -12,33 +11,41 @@ export const docsRoutes = new Hono<AppEnv>();
 // Only enable docs in development or if explicitly enabled
 if (config.docs.enabled) {
   /**
-   * Swagger UI
+   * Main documentation page
    */
-  docsRoutes.get(
-    '/',
-    swaggerUI({
-      url: '/docs/openapi.json',
-    })
-  );
+  docsRoutes.get('/', c => {
+    return c.json({
+      message: 'CSmart API Documentation',
+      version: '1.0.0',
+      endpoints: {
+        health: '/health',
+        openapi: '/docs/openapi.json',
+        auth: {
+          login: 'POST /api/v1/auth/login',
+          register: 'POST /api/v1/auth/register',
+        },
+        users: {
+          list: 'GET /api/v1/users',
+          create: 'POST /api/v1/users',
+        },
+        profile: {
+          get: 'GET /api/v1/profile',
+          update: 'PUT /api/v1/profile',
+        },
+      },
+    });
+  });
 
   /**
    * OpenAPI specification
    */
   docsRoutes.get('/openapi.json', c => {
-    const openApiSpec = {
+    return c.json({
       openapi: '3.0.0',
       info: {
         title: 'CSmart API',
         version: '1.0.0',
         description: 'Enterprise HonoJS API for CSmart application',
-        contact: {
-          name: 'CSmart Team',
-          email: 'support@csmart.com',
-        },
-        license: {
-          name: 'MIT',
-          url: 'https://opensource.org/licenses/MIT',
-        },
       },
       servers: [
         {
@@ -50,32 +57,9 @@ if (config.docs.enabled) {
         '/health': {
           get: {
             tags: ['Health'],
-            summary: 'Basic health check',
+            summary: 'Health check',
             responses: {
-              '200': {
-                description: 'Service is healthy',
-                content: {
-                  'application/json': {
-                    schema: {
-                      type: 'object',
-                      properties: {
-                        success: { type: 'boolean' },
-                        data: {
-                          type: 'object',
-                          properties: {
-                            status: { type: 'string' },
-                            timestamp: { type: 'string' },
-                            uptime: { type: 'number' },
-                            version: { type: 'string' },
-                          },
-                        },
-                        timestamp: { type: 'string' },
-                        requestId: { type: 'string' },
-                      },
-                    },
-                  },
-                },
-              },
+              '200': { description: 'Service is healthy' },
             },
           },
         },
@@ -99,87 +83,17 @@ if (config.docs.enabled) {
               },
             },
             responses: {
-              '200': {
-                description: 'Login successful',
-                content: {
-                  'application/json': {
-                    schema: {
-                      type: 'object',
-                      properties: {
-                        success: { type: 'boolean' },
-                        data: {
-                          type: 'object',
-                          properties: {
-                            token: { type: 'string' },
-                            refreshToken: { type: 'string' },
-                            user: {
-                              type: 'object',
-                              properties: {
-                                id: { type: 'string' },
-                                email: { type: 'string' },
-                                role: { type: 'string' },
-                              },
-                            },
-                          },
-                        },
-                        timestamp: { type: 'string' },
-                        requestId: { type: 'string' },
-                      },
-                    },
-                  },
-                },
-              },
-              '401': {
-                description: 'Invalid credentials',
-              },
+              '200': { description: 'Login successful' },
+              '401': { description: 'Invalid credentials' },
             },
           },
         },
       },
-      components: {
-        securitySchemes: {
-          bearerAuth: {
-            type: 'http',
-            scheme: 'bearer',
-            bearerFormat: 'JWT',
-          },
-        },
-        schemas: {
-          Error: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean', example: false },
-              error: {
-                type: 'object',
-                properties: {
-                  code: { type: 'string' },
-                  message: { type: 'string' },
-                  details: { type: 'object' },
-                },
-              },
-              timestamp: { type: 'string' },
-              requestId: { type: 'string' },
-            },
-          },
-        },
-      },
-      security: [
-        {
-          bearerAuth: [],
-        },
-      ],
-    };
-
-    return c.json(openApiSpec);
+    });
   });
 } else {
   // Disabled message
   docsRoutes.get('/', c => {
-    return c.json(
-      {
-        message: 'API documentation is disabled',
-      },
-      404
-    );
+    return c.json({ message: 'API documentation is disabled' }, 404);
   });
 }

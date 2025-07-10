@@ -25,7 +25,6 @@ const profileSchema = new Schema<IProfile>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      unique: true,
     },
     bio: {
       type: String,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,10 +9,8 @@ interface LoginFormProps extends Omit<React.ComponentProps<'form'>, 'onSubmit'> 
   onSubmit: (data: { email: string; password: string }) => void;
   isLoading?: boolean;
   error?: string;
-  email?: string;
-  password?: string;
-  onEmailChange?: (email: string) => void;
-  onPasswordChange?: (password: string) => void;
+  initialEmail?: string;
+  initialPassword?: string;
   emailError?: string;
   passwordError?: string;
   showHeader?: boolean;
@@ -23,15 +21,16 @@ export function LoginForm({
   onSubmit,
   isLoading = false,
   error,
-  email = '',
-  password = '',
-  onEmailChange,
-  onPasswordChange,
+  initialEmail = '',
+  initialPassword = '',
   emailError,
   passwordError,
   showHeader = true,
   ...props
 }: LoginFormProps) {
+  const [email, setEmail] = useState(initialEmail);
+  const [password, setPassword] = useState(initialPassword);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({ email, password });
@@ -68,7 +67,7 @@ export function LoginForm({
             placeholder='m@example.com'
             required
             value={email}
-            onChange={(e) => onEmailChange?.(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
           />
           {emailError && (
             <p className='text-sm text-red-600'>{emailError}</p>
@@ -89,7 +88,7 @@ export function LoginForm({
             type='password'
             required
             value={password}
-            onChange={(e) => onPasswordChange?.(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
           />
           {passwordError && (
             <p className='text-sm text-red-600'>{passwordError}</p>

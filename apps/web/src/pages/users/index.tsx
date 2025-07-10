@@ -1,14 +1,29 @@
 /**
  * User Management Page
  * Lists all users with search, filter, and management capabilities
+ * Updated to use @repo/table package
  */
 
-import { useNavigate } from '@tanstack/react-router';
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 
-import { SkeletonTable, ErrorWithRetry, LoadingButton } from '@/components/ui';
+import { BasicTable, type TableColumn } from '@repo/table';
+import { useNavigate } from '@tanstack/react-router';
+
+// Import UI components
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+
 import { useUsers, useToggleUserStatus } from '@/hooks/api';
-import { useTable } from '@/hooks/ui';
 import type { User } from '@/types';
 
 export const UsersPage: React.FC = () => {
@@ -32,41 +47,60 @@ export const UsersPage: React.FC = () => {
   // Toggle user status mutation
   const toggleStatusMutation = useToggleUserStatus();
 
-  // Table configuration
-  const table = useTable<User>({
-    data: users?.data || [],
-    columns: [
+  // Prepare data for new table
+  const tableData = useMemo(() => {
+    return users?.data || [];
+  }, [users?.data]);
+
+  // Handle toggle user status
+  const handleToggleStatus = useCallback(
+    async (user: User) => {
+      try {
+        await toggleStatusMutation.mutateAsync({
+          userId: user.id,
+          isActive: !user.isActive,
+        });
+      } catch {
+        // Error is handled by the mutation's onError callback
+      }
+    },
+    [toggleStatusMutation]
+  );
+
+  // Define columns for new table
+  const columns = useMemo<TableColumn<User>[]>(
+    () => [
       {
         id: 'name',
-        header: 'Name',
-        accessorFn: row => `${row.firstName} ${row.lastName}`,
-        cell: ({ row }) => (
-          <div className='flex items-center'>
-            <div className='flex-shrink-0 h-10 w-10'>
-              <div className='h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center'>
-                <span className='text-sm font-medium text-gray-700'>
-                  {row.original.firstName[0]}
-                  {row.original.lastName[0]}
-                </span>
-              </div>
+        name: 'Name',
+        accessor: (row: User) => `${row.firstName} ${row.lastName}`,
+        width: 250,
+        cell: ({ row }: { row: User }) => (
+          <div className='flex items-center space-x-3'>
+            <div className='h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center'>
+              <span className='text-xs font-medium text-gray-700'>
+                {row.firstName[0]}
+                {row.lastName[0]}
+              </span>
             </div>
-            <div className='ml-4'>
+            <div>
               <div className='text-sm font-medium text-gray-900'>
-                {row.original.firstName} {row.original.lastName}
+                {row.firstName} {row.lastName}
               </div>
-              <div className='text-sm text-gray-500'>{row.original.email}</div>
+              <div className='text-sm text-gray-500'>{row.email}</div>
             </div>
           </div>
         ),
       },
       {
         id: 'roles',
-        header: 'Roles',
-        accessorFn: row =>
+        name: 'Roles',
+        accessor: (row: User) =>
           row.roles?.map(role => role.name).join(', ') || 'No roles',
-        cell: ({ row }) => (
+        width: 200,
+        cell: ({ row }: { row: User }) => (
           <div className='flex flex-wrap gap-1'>
-            {row.original.roles?.map(role => (
+            {row.roles?.map((role: { id: string; name: string }) => (
               <span
                 key={role.id}
                 className='inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800'
@@ -81,72 +115,66 @@ export const UsersPage: React.FC = () => {
       },
       {
         id: 'status',
-        header: 'Status',
-        accessorKey: 'isActive',
-        cell: ({ row }) => (
+        name: 'Status',
+        accessor: 'isActive',
+        width: 100,
+        cell: ({ row }: { row: User }) => (
           <span
             className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-              row.original.isActive
+              row.isActive
                 ? 'bg-green-100 text-green-800'
                 : 'bg-red-100 text-red-800'
             }`}
           >
-            {row.original.isActive ? 'Active' : 'Inactive'}
+            {row.isActive ? 'Active' : 'Inactive'}
           </span>
         ),
       },
       {
         id: 'lastLogin',
-        header: 'Last Login',
-        accessorKey: 'lastLoginAt',
-        cell: ({ row }) => (
+        name: 'Last Login',
+        accessor: 'lastLoginAt',
+        width: 150,
+        cell: ({ row }: { row: User }) => (
           <span className='text-sm text-gray-900'>
-            {row.original.lastLoginAt
-              ? new Date(row.original.lastLoginAt).toLocaleDateString()
+            {row.lastLoginAt
+              ? new Date(row.lastLoginAt).toLocaleDateString()
               : 'Never'}
           </span>
         ),
       },
       {
         id: 'actions',
-        header: 'Actions',
-        cell: ({ row }) => (
+        name: 'Actions',
+        width: 150,
+        cell: ({ row }: { row: User }) => (
           <div className='flex space-x-2'>
-            <button
-              onClick={() => navigate({ to: `/users/${row.original.id}/edit` })}
-              className='text-blue-600 hover:text-blue-900 text-sm font-medium'
+            <Button
+              variant='ghost'
+              size='sm'
+              onClick={() => navigate({ to: `/users/${row.id}/edit` })}
             >
               Edit
-            </button>
-            <LoadingButton
-              isLoading={toggleStatusMutation.isPending}
-              onClick={() => handleToggleStatus(row.original)}
-              className={`text-sm font-medium border-none bg-transparent p-0 ${
-                row.original.isActive
-                  ? 'text-red-600 hover:text-red-900'
-                  : 'text-green-600 hover:text-green-900'
-              }`}
+            </Button>
+            <Button
+              variant='ghost'
+              size='sm'
+              disabled={toggleStatusMutation.isPending}
+              onClick={() => handleToggleStatus(row)}
+              className={
+                row.isActive
+                  ? 'text-red-600 hover:text-red-700'
+                  : 'text-green-600 hover:text-green-700'
+              }
             >
-              {row.original.isActive ? 'Deactivate' : 'Activate'}
-            </LoadingButton>
+              {row.isActive ? 'Deactivate' : 'Activate'}
+            </Button>
           </div>
         ),
       },
     ],
-    enableSorting: true,
-    enableFiltering: true,
-  });
-
-  const handleToggleStatus = async (user: User) => {
-    try {
-      await toggleStatusMutation.mutateAsync({
-        userId: user.id,
-        isActive: !user.isActive,
-      });
-    } catch {
-      // Error is handled by the mutation's onError callback
-    }
-  };
+    [navigate, toggleStatusMutation.isPending, handleToggleStatus]
+  );
 
   const handleCreateUser = () => {
     navigate({ to: '/users/create' });
@@ -157,15 +185,19 @@ export const UsersPage: React.FC = () => {
     return (
       <div className='min-h-screen bg-gray-50'>
         <div className='max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8'>
-          <ErrorWithRetry
-            error={error}
-            onRetry={() => {
-              refetch();
-            }}
-            title='Failed to load users'
-            showErrorDetails={false}
-            className='mt-20'
-          />
+          <Alert variant='destructive' className='mt-20'>
+            <AlertDescription>
+              Failed to load users. Please try again.
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => refetch()}
+                className='ml-2'
+              >
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
         </div>
       </div>
     );
@@ -180,12 +212,7 @@ export const UsersPage: React.FC = () => {
             <h1 className='text-3xl font-bold text-gray-900'>
               User Management
             </h1>
-            <button
-              onClick={handleCreateUser}
-              className='bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
-            >
-              Create User
-            </button>
+            <Button onClick={handleCreateUser}>Create User</Button>
           </div>
         </div>
       </div>
@@ -194,148 +221,91 @@ export const UsersPage: React.FC = () => {
       <div className='max-w-7xl mx-auto py-6 sm:px-6 lg:px-8'>
         <div className='px-4 py-6 sm:px-0'>
           {/* Filters */}
-          <div className='bg-white p-6 rounded-lg shadow mb-6'>
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              <div>
-                <label
-                  htmlFor='search'
-                  className='block text-sm font-medium text-gray-700 mb-2'
-                >
-                  Search Users
-                </label>
-                <input
-                  type='text'
-                  id='search'
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  placeholder='Search by name or email...'
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                />
-              </div>
+          <Card className='mb-6'>
+            <CardContent className='pt-6'>
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                <div>
+                  <label
+                    htmlFor='search'
+                    className='block text-sm font-medium text-gray-700 mb-2'
+                  >
+                    Search Users
+                  </label>
+                  <Input
+                    id='search'
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    placeholder='Search by name or email...'
+                  />
+                </div>
 
-              <div>
-                <label
-                  htmlFor='status'
-                  className='block text-sm font-medium text-gray-700 mb-2'
-                >
-                  Status Filter
-                </label>
-                <select
-                  id='status'
-                  value={statusFilter}
-                  onChange={e =>
-                    setStatusFilter(
-                      e.target.value as 'all' | 'active' | 'inactive'
-                    )
-                  }
-                  className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                >
-                  <option value='all'>All Users</option>
-                  <option value='active'>Active Only</option>
-                  <option value='inactive'>Inactive Only</option>
-                </select>
-              </div>
+                <div>
+                  <label
+                    htmlFor='status'
+                    className='block text-sm font-medium text-gray-700 mb-2'
+                  >
+                    Status Filter
+                  </label>
+                  <Select
+                    value={statusFilter}
+                    onValueChange={(value: 'all' | 'active' | 'inactive') =>
+                      setStatusFilter(value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder='Select status' />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value='all'>All Users</SelectItem>
+                      <SelectItem value='active'>Active Only</SelectItem>
+                      <SelectItem value='inactive'>Inactive Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className='flex items-end'>
-                <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setStatusFilter('all');
-                  }}
-                  className='w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500'
-                >
-                  Clear Filters
-                </button>
+                <div className='flex items-end'>
+                  <Button
+                    variant='outline'
+                    onClick={() => {
+                      setSearchTerm('');
+                      setStatusFilter('all');
+                    }}
+                    className='w-full'
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Users Table */}
-          <div className='bg-white shadow overflow-hidden sm:rounded-md'>
-            <div className='px-4 py-5 sm:p-6'>
+          {/* Users Table - Using @repo/table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Users ({tableData.length})</CardTitle>
+            </CardHeader>
+            <CardContent>
               {isLoading ? (
-                <SkeletonTable rows={8} columns={5} className='space-y-4' />
+                <div className='space-y-4'>
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className='flex space-x-4'>
+                      {Array.from({ length: 6 }).map((_, j) => (
+                        <Skeleton key={j} className='h-4 w-20' />
+                      ))}
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <div className='overflow-x-auto'>
-                  <table className='min-w-full divide-y divide-gray-200'>
-                    <thead className='bg-gray-50'>
-                      {table.table.getHeaderGroups().map(headerGroup => (
-                        <tr key={headerGroup.id}>
-                          {headerGroup.headers.map(header => (
-                            <th
-                              key={header.id}
-                              className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100'
-                              onClick={header.column.getToggleSortingHandler()}
-                            >
-                              <div className='flex items-center space-x-1'>
-                                <span>
-                                  {header.isPlaceholder
-                                    ? null
-                                    : typeof header.column.columnDef.header ===
-                                        'function'
-                                      ? header.column.columnDef.header(
-                                          header.getContext()
-                                        )
-                                      : header.column.columnDef.header}
-                                </span>
-                                {header.column.getIsSorted() && (
-                                  <span className='text-blue-600'>
-                                    {header.column.getIsSorted() === 'desc'
-                                      ? '↓'
-                                      : '↑'}
-                                  </span>
-                                )}
-                              </div>
-                            </th>
-                          ))}
-                        </tr>
-                      ))}
-                    </thead>
-                    <tbody className='bg-white divide-y divide-gray-200'>
-                      {table.table.getRowModel().rows.map(row => (
-                        <tr key={row.id} className='hover:bg-gray-50'>
-                          {row.getVisibleCells().map(cell => (
-                            <td
-                              key={cell.id}
-                              className='px-6 py-4 whitespace-nowrap'
-                            >
-                              {typeof cell.column.columnDef.cell === 'function'
-                                ? cell.column.columnDef.cell(cell.getContext())
-                                : cell.getValue()}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className='w-full'>
+                  <BasicTable
+                    data={tableData}
+                    columns={columns}
+                    className='border rounded-lg'
+                  />
                 </div>
               )}
-
-              {/* Pagination */}
-              <div className='flex items-center justify-between mt-6'>
-                <div className='text-sm text-gray-700'>
-                  Showing {table.table.getRowModel().rows.length} of{' '}
-                  {users?.data?.length || 0} users
-                </div>
-                <div className='flex space-x-2'>
-                  <button
-                    onClick={() => table.table.previousPage()}
-                    disabled={!table.table.getCanPreviousPage()}
-                    className='px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed'
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() => table.table.nextPage()}
-                    disabled={!table.table.getCanNextPage()}
-                    className='px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed'
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
