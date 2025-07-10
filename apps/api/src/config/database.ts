@@ -18,8 +18,8 @@ export async function connectToDatabase(): Promise<void> {
   }
 
   try {
-    const connectionString = config.database.url ||
-      `mongodb://${config.database.user}:${config.database.password}@${config.database.host}:${config.database.port}/${config.database.name}`;
+    logger.info('Connecting to MongoDB...');
+    const connectionString = config.database.uri || '';
 
     await mongoose.connect(connectionString, {
       maxPoolSize: 20, // Maximum number of connections in the connection pool
@@ -32,7 +32,7 @@ export async function connectToDatabase(): Promise<void> {
     logger.info('Connected to MongoDB successfully');
 
     // Handle connection events
-    mongoose.connection.on('error', (error) => {
+    mongoose.connection.on('error', error => {
       logger.error('MongoDB connection error:', error);
       isConnected = false;
     });
@@ -46,7 +46,6 @@ export async function connectToDatabase(): Promise<void> {
       logger.info('MongoDB reconnected');
       isConnected = true;
     });
-
   } catch (error) {
     logger.error('Failed to connect to MongoDB:', error);
     isConnected = false;

@@ -20,7 +20,7 @@ const envSchema = z.object({
   HOST: z.string().default('localhost'),
 
   // Database configuration (MongoDB)
-  DATABASE_URL: z.string().optional(), // MongoDB connection string
+  DATABASE_URI: z.string().optional(), // MongoDB connection string
   DB_HOST: z.string().default('localhost'),
   DB_PORT: z
     .string()
@@ -120,12 +120,7 @@ export const config = {
   host: env.HOST,
 
   database: {
-    url: env.DATABASE_URL,
-    host: env.DB_HOST,
-    port: env.DB_PORT,
-    name: env.DB_NAME,
-    user: env.DB_USER,
-    password: env.DB_PASSWORD,
+    uri: env.DATABASE_URI
   },
 
   redis: {

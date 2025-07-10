@@ -1,14 +1,14 @@
 import { HTTPException } from 'hono/http-exception';
 
 import {
-  Role as RoleModel,
-  Policy as PolicyModel,
-  RolePolicy,
-  UserRole,
-  type IRole,
-  type IPolicy
+    Policy as PolicyModel,
+    Role as RoleModel,
+    RolePolicy,
+    UserRole,
+    type IPolicy,
+    type IRole
 } from '@/database/models';
-import type { Role, Policy, PolicyConditions } from '@/types';
+import type { Policy, PolicyConditions, Role } from '@/types';
 import type { RoleMetadata } from '@/types/database';
 import { logger } from '@/utils/logger';
 
@@ -167,6 +167,35 @@ export class RoleService {
       return this.convertToRole(roleData, rolePoliciesList);
     } catch (error) {
       logger.error('Get role by ID failed:', error);
+      throw new HTTPException(500, { message: 'Failed to retrieve role' });
+    }
+  }
+
+  /**
+   * Get role by name
+   */
+  async getRoleByName(name: string): Promise<Role | null> {
+    try {
+      const roleData = await RoleModel.findOne({ name: name.toLowerCase() });
+
+      if (!roleData) {
+        return null;
+      }
+
+      // Get role policies
+      const rolePoliciesData = await RolePolicy.find({ roleId: roleData._id })
+        .populate('policyId');
+
+      const rolePoliciesList: Policy[] = [];
+      for (const rp of rolePoliciesData) {
+        if (rp.policyId && typeof rp.policyId === 'object' && '_id' in rp.policyId) {
+          rolePoliciesList.push(this.convertToPolicy(rp.policyId as unknown as IPolicy));
+        }
+      }
+
+      return this.convertToRole(roleData, rolePoliciesList);
+    } catch (error) {
+      logger.error('Get role by name failed:', error);
       throw new HTTPException(500, { message: 'Failed to retrieve role' });
     }
   }
@@ -409,6 +438,77 @@ export class RoleService {
       logger.info('Role assigned to user', { userId, roleId, assignedBy });
     } catch (error) {
       logger.error('Assign role to user failed:', error);
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+      throw new HTTPException(500, {
+        message: 'Failed to assign role to user',
+      });
+    }
+  }
+
+  /**
+   * Ensure default role exists and create if not
+   */
+  async ensureDefaultRole(roleName: string): Promise<Role> {
+    try {
+      logger.debug(`Ensuring default role exists: ${roleName}`);
+
+      // Try to find existing role
+      let role = await this.getRoleByName(roleName);
+
+      if (!role) {
+        // Create default role if it doesn't exist
+        logger.info(`Creating default role: ${roleName}`);
+
+        try {
+          // Create role directly without policies for default roles
+          const newRole = new RoleModel({
+            name: roleName,
+            description: `Default ${roleName} role`,
+            isSystemRole: true,
+            metadata: {},
+          });
+
+          const savedRole = await newRole.save();
+          logger.debug(`Default role created successfully: ${roleName}`);
+
+          // Convert to Role interface
+          role = this.convertToRole(savedRole, []);
+        } catch (createError) {
+          logger.error(`Failed to create default role '${roleName}':`, createError);
+          throw createError;
+        }
+      } else {
+        logger.debug(`Default role already exists: ${roleName}`);
+      }
+
+      return role;
+    } catch (error) {
+      logger.error('Ensure default role failed:', error);
+      throw new HTTPException(500, {
+        message: `Failed to ensure default role '${roleName}' exists`,
+      });
+    }
+  }
+
+  /**
+   * Assign role to user by role name
+   */
+  async assignRoleToUserByName(
+    userId: string,
+    roleName: string,
+    assignedBy?: string,
+    expiresAt?: Date
+  ): Promise<void> {
+    try {
+      // Ensure role exists (create if needed)
+      const role = await this.ensureDefaultRole(roleName);
+
+      // Use existing assignRoleToUser method
+      await this.assignRoleToUser(userId, role.id, assignedBy, expiresAt);
+    } catch (error) {
+      logger.error('Assign role to user by name failed:', error);
       if (error instanceof HTTPException) {
         throw error;
       }

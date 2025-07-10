@@ -68,54 +68,75 @@ export const authService = {
     firstName: string;
     lastName: string;
   }) {
-    // Check if user already exists
-    const existingUser = await userRepository.findByEmail(userData.email);
+    try {
+      logger.info('Starting user registration', { email: userData.email });
 
-    if (existingUser) {
-      throw new HTTPException(409, { message: 'User already exists' });
+      // Check if user already exists
+      const existingUser = await userRepository.findByEmail(userData.email);
+
+      if (existingUser) {
+        throw new HTTPException(409, { message: 'User already exists' });
+      }
+
+      logger.debug('User does not exist, proceeding with creation');
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(
+        userData.password,
+        config.security.bcryptRounds
+      );
+
+      logger.debug('Password hashed successfully');
+
+      // Create user
+      const user = await userRepository.create({
+        ...userData,
+        passwordHash,
+        // Role assignment handled by PBAC system
+        isActive: true,
+        emailVerified: false,
+      });
+
+      if (!user) {
+        throw new HTTPException(500, { message: 'Failed to create user' });
+      }
+
+      logger.debug('User created successfully', { userId: user.id });
+
+      // Assign default user role in PBAC system
+      try {
+        await roleService.assignRoleToUserByName(user.id, 'user');
+        logger.debug('Default role assigned successfully');
+      } catch (roleError) {
+        logger.error('Failed to assign default role:', roleError);
+        throw roleError;
+      }
+
+      // Generate tokens
+      const tokens = await this.generateTokens(user.id, user.email);
+      logger.debug('Tokens generated successfully');
+
+      logger.info('User registered', { userId: user.id, email: user.email });
+
+      // Get user roles for response
+      const userRoles = await permissionEvaluatorService.getUserRoles(user.id);
+      logger.debug('User roles retrieved', { rolesCount: userRoles.length });
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          roles: userRoles,
+          isActive: user.isActive,
+        },
+        ...tokens,
+      };
+    } catch (error) {
+      logger.error('User registration failed:', error);
+      throw error;
     }
-
-    // Hash password
-    const passwordHash = await bcrypt.hash(
-      userData.password,
-      config.security.bcryptRounds
-    );
-
-    // Create user
-    const user = await userRepository.create({
-      ...userData,
-      passwordHash,
-      // Role assignment handled by PBAC system
-      isActive: true,
-      emailVerified: false,
-    });
-
-    if (!user) {
-      throw new HTTPException(500, { message: 'Failed to create user' });
-    }
-
-    // Assign default user role in PBAC system
-    await roleService.assignRoleToUser(user.id, 'user');
-
-    // Generate tokens
-    const tokens = await this.generateTokens(user.id, user.email);
-
-    logger.info('User registered', { userId: user.id, email: user.email });
-
-    // Get user roles for response
-    const userRoles = await permissionEvaluatorService.getUserRoles(user.id);
-
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        roles: userRoles,
-        isActive: user.isActive,
-      },
-      ...tokens,
-    };
   },
 
   /**
