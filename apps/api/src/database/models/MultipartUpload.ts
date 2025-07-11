@@ -192,7 +192,6 @@ const multipartUploadSchema = new Schema<IMultipartUpload>(
 );
 
 // Indexes for performance
-multipartUploadSchema.index({ uploadId: 1 }, { unique: true });
 multipartUploadSchema.index({ userId: 1, status: 1 });
 multipartUploadSchema.index({ bucket: 1, key: 1 });
 multipartUploadSchema.index({ status: 1 });

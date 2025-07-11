@@ -120,6 +120,16 @@ const envSchema = z.object({
     .default('false'),
   MINIO_REGION: z.string().default('us-east-1'),
   MINIO_DEFAULT_BUCKET: z.string().default('uploads'),
+
+  // Admin seeding configuration
+  ADMIN_EMAIL: z.string().email().default('admin@csmart.com'),
+  ADMIN_PASSWORD: z.string().min(8).default('Admin123!@#'),
+  ADMIN_FIRST_NAME: z.string().default('System'),
+  ADMIN_LAST_NAME: z.string().default('Administrator'),
+  ENABLE_ADMIN_SEEDING: z
+    .string()
+    .transform(val => val === 'true')
+    .default('true'),
 });
 
 /**
@@ -200,6 +210,14 @@ export const config = {
     useSSL: env.MINIO_USE_SSL,
     region: env.MINIO_REGION,
     defaultBucket: env.MINIO_DEFAULT_BUCKET,
+  },
+
+  admin: {
+    email: env.ADMIN_EMAIL,
+    password: env.ADMIN_PASSWORD,
+    firstName: env.ADMIN_FIRST_NAME,
+    lastName: env.ADMIN_LAST_NAME,
+    enableSeeding: env.ENABLE_ADMIN_SEEDING,
   },
 } as const;
 

@@ -4,6 +4,7 @@ import { createApp } from '@/app';
 import { config } from '@/config/app';
 import { connectToDatabase } from '@/config/database';
 import { initializeMinIO } from '@/config/minio';
+import { databaseMigrate } from '@/database/migrate';
 import { gracefulShutdown } from '@/utils/graceful-shutdown';
 import { logger } from '@/utils/logger';
 
@@ -14,6 +15,10 @@ async function startServer(): Promise<void> {
   try {
     // Connect to MongoDB
     await connectToDatabase();
+
+    // Run database migrations and seeding
+    await databaseMigrate.migrate();
+    await databaseMigrate.seed();
 
     // Initialize MinIO
     await initializeMinIO();
@@ -51,4 +56,3 @@ if (import.meta.main) {
 }
 
 export { createApp };
-

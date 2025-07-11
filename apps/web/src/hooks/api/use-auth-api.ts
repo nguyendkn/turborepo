@@ -10,14 +10,14 @@ import { apiClient } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-client';
 import { authActions } from '@/store';
 import type {
-  LoginRequest,
-  RegisterRequest,
-  RefreshTokenRequest,
-  ForgotPasswordRequest,
-  ResetPasswordRequest,
-  AuthResponse,
-  User,
   ApiErrorType,
+  AuthResponse,
+  ForgotPasswordRequest,
+  LoginRequest,
+  RefreshTokenRequest,
+  RegisterRequest,
+  ResetPasswordRequest,
+  User,
 } from '@/types';
 
 /**
@@ -31,7 +31,7 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: async (credentials: LoginRequest): Promise<AuthResponse> => {
       const response = await apiClient.post<AuthResponse>(
-        '/auth/login',
+        '/v1/auth/login',
         credentials
       );
 

@@ -3,7 +3,7 @@
  * Monitors network connectivity and provides offline/online status
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useNotifications } from './use-notifications';
 
@@ -49,7 +49,7 @@ export interface NetworkStatusOptions {
 export const useNetworkStatus = (options: NetworkStatusOptions = {}) => {
   const {
     showNotifications = true,
-    pingUrl = '/api/health',
+    pingUrl = '/health',
     pingInterval = 30000, // 30 seconds
     pingTimeout = 5000, // 5 seconds
   } = options;

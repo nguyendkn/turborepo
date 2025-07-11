@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Document, Schema, Types, model } from 'mongoose';
 
 /**
  * RolePolicy interface
@@ -7,6 +7,7 @@ export interface IRolePolicy extends Document {
   _id: Types.ObjectId;
   roleId: Types.ObjectId;
   policyId: Types.ObjectId;
+  assignedAt: Date;
   createdAt: Date;
 }
 
@@ -24,6 +25,11 @@ const rolePolicySchema = new Schema<IRolePolicy>(
       type: Schema.Types.ObjectId,
       ref: 'Policy',
       required: true,
+    },
+    assignedAt: {
+      type: Date,
+      required: true,
+      default: Date.now,
     },
   },
   {

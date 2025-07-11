@@ -17,11 +17,11 @@ export const PUBLIC_ROUTES: PublicRoutePattern[] = [
   // Health check endpoints
   {
     pattern: '/health',
-    methods: ['GET'],
+    methods: ['GET', 'HEAD'],
   },
   {
     pattern: '/health/*',
-    methods: ['GET'],
+    methods: ['GET', 'HEAD'],
   },
 
   // Authentication endpoints
