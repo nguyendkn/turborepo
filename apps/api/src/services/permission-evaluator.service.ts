@@ -423,12 +423,16 @@ export class PermissionEvaluatorService {
       const roles: Role[] = [];
 
       for (const userRole of userRoleData) {
-        if (!userRole.roleId) continue;
+        if (!userRole.roleId) {
+          continue;
+        }
 
         const roleDoc = userRole.roleId as unknown as IRole;
 
         // Skip inactive roles
-        if (!roleDoc.isActive) continue;
+        if (!roleDoc.isActive) {
+          continue;
+        }
 
         // Get policies for this role
         const rolePoliciesData = await RolePolicy.find({

@@ -1,7 +1,7 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 import { config } from '@/config/app';
-import { User, Role, Policy, UserRole, RolePolicy } from '@/database/models';
+import { Policy, Role, RolePolicy, User, UserRole } from '@/database/models';
 import { logger } from '@/utils/logger';
 
 /**
@@ -218,56 +218,5 @@ async function seedAdminUser(): Promise<void> {
     }
   } else {
     logger.error('Admin role not found when trying to assign to admin user');
-  }
-}
-
-/**
- * Check if admin user exists
- */
-export async function checkAdminUserExists(): Promise<boolean> {
-  try {
-    const adminUser = await User.findOne({ email: config.admin.email });
-    return !!adminUser;
-  } catch (error) {
-    logger.error('Error checking admin user existence:', error);
-    return false;
-  }
-}
-
-/**
- * Get admin user information (without sensitive data)
- */
-export async function getAdminUserInfo(): Promise<{
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  isActive: boolean;
-  roles: string[];
-} | null> {
-  try {
-    const adminUser = await User.findOne({ email: config.admin.email });
-
-    if (!adminUser) {
-      return null;
-    }
-
-    // Get user roles
-    const userRoles = await UserRole.find({ userId: adminUser._id }).populate(
-      'roleId'
-    );
-    const roleNames = userRoles.map(ur => ur.roleId?.name).filter(Boolean);
-
-    return {
-      id: adminUser._id.toString(),
-      email: adminUser.email,
-      firstName: adminUser.firstName,
-      lastName: adminUser.lastName,
-      isActive: adminUser.isActive,
-      roles: roleNames,
-    };
-  } catch (error) {
-    logger.error('Error getting admin user info:', error);
-    return null;
   }
 }
