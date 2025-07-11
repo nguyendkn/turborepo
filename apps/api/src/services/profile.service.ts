@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import { HTTPException } from 'hono/http-exception';
 
+import { permissionEvaluatorService } from './permission-evaluator.service';
+
 import { config } from '@/config/app';
 import { profileRepository } from '@/repositories/profile.repository';
 import { userRepository } from '@/repositories/user.repository';
@@ -23,11 +25,15 @@ export const profileService = {
 
     const profile = await profileRepository.findByUserId(userId);
 
+    // Get user roles with policies
+    const userRoles = await permissionEvaluatorService.getUserRoles(userId);
+
     return {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      roles: userRoles,
       isActive: user.isActive,
       emailVerified: user.emailVerified,
       lastLoginAt: user.lastLoginAt,

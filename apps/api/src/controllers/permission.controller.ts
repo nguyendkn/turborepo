@@ -2,7 +2,7 @@ import type { Handler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
 import { permissionEvaluatorService } from '@/services/permission-evaluator.service';
-import type { AppEnv, ApiResponse, PermissionRequest } from '@/types';
+import type { ApiResponse, AppEnv, PermissionRequest } from '@/types';
 import { logger } from '@/utils/logger';
 import { extractRequestContext } from '@/utils/request-context';
 
@@ -21,6 +21,13 @@ export const permissionController = {
       if (!user) {
         throw new HTTPException(401, { message: 'Authentication required' });
       }
+
+      console.log('DEBUG: User object in controller:', {
+        id: user.id,
+        email: user.email,
+        rolesCount: user.roles?.length || 0,
+        roles: user.roles?.map(r => ({ name: r.name, policiesCount: r.policies?.length || 0 }))
+      });
 
       const requestData = await c.req.json();
 

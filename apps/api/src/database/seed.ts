@@ -73,7 +73,7 @@ async function seedAdminPolicies(): Promise<void> {
       isActive: true,
       conditions: {},
       actions: ['create', 'read', 'update', 'delete'],
-      resources: ['roles', 'policies', 'permissions'],
+      resources: ['roles', 'policies', 'permissions', 'user-permissions', 'permission-cache'],
       effect: 'allow' as const,
       priority: 900,
     },

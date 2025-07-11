@@ -1,8 +1,8 @@
 import type {
-  Policy,
-  PolicyConditions,
-  PolicyEvaluationContext,
-  PolicyEvaluationResult,
+    Policy,
+    PolicyConditions,
+    PolicyEvaluationContext,
+    PolicyEvaluationResult,
 } from '@/types';
 import { logger } from '@/utils/logger';
 
@@ -40,6 +40,13 @@ export class PolicyEngineService {
       policy.actions,
       context.request.action
     );
+
+    logger.debug('Action matching result', {
+      policyActions: policy.actions,
+      requestAction: context.request.action,
+      actionMatches
+    });
+
     if (!actionMatches) {
       return {
         allowed: false,
@@ -55,6 +62,13 @@ export class PolicyEngineService {
       policy.resources,
       context.request.resource
     );
+
+    logger.debug('Resource matching result', {
+      policyResources: policy.resources,
+      requestResource: context.request.resource,
+      resourceMatches
+    });
+
     if (!resourceMatches) {
       return {
         allowed: false,
@@ -97,7 +111,7 @@ export class PolicyEngineService {
     policyActions: string[],
     requestAction: string
   ): boolean {
-    return policyActions.some(action => {
+    const result = policyActions.some(action => {
       // Support wildcards
       if (action === '*') return true;
       if (action.endsWith('*')) {
@@ -106,6 +120,14 @@ export class PolicyEngineService {
       }
       return action === requestAction;
     });
+
+    console.log('DEBUG matchesAction:', {
+      policyActions,
+      requestAction,
+      result
+    });
+
+    return result;
   }
 
   /**
@@ -115,7 +137,7 @@ export class PolicyEngineService {
     policyResources: string[],
     requestResource: string
   ): boolean {
-    return policyResources.some(resource => {
+    const result = policyResources.some(resource => {
       // Support wildcards
       if (resource === '*') return true;
       if (resource.endsWith('*')) {
@@ -124,6 +146,14 @@ export class PolicyEngineService {
       }
       return resource === requestResource;
     });
+
+    console.log('DEBUG matchesResource:', {
+      policyResources,
+      requestResource,
+      result
+    });
+
+    return result;
   }
 
   /**

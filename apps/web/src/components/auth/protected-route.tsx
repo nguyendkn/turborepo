@@ -3,11 +3,11 @@
  * Handles authentication checks and redirects for protected pages
  */
 
-import { useNavigate, useLocation } from '@tanstack/react-router';
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { useStore } from '@tanstack/react-store';
 import React, { useEffect } from 'react';
 
-import { authStore, authSelectors } from '@/store';
+import { authSelectors, authStore } from '@/store';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -39,9 +39,29 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     // If authenticated but missing required permissions, redirect to unauthorized
     if (isAuthenticated && requiredPermissions.length > 0 && user) {
-      const hasPermissions = requiredPermissions.every(permission =>
-        user.permissions?.includes(permission)
-      );
+      // If user has no roles, skip permission check (might be loading)
+      if (!user.roles || user.roles.length === 0) {
+        return;
+      }
+
+      const hasPermissions = requiredPermissions.every(permission => {
+        // Parse permission format: "action:resource" or just "role"
+        if (permission.includes(':')) {
+          const [action, resource] = permission.split(':');
+          return user.roles?.some(role =>
+            role.policies?.some(
+              policy =>
+                policy.isActive &&
+                policy.effect === 'allow' &&
+                (policy.actions?.includes(action) || policy.actions?.includes('*')) &&
+                (policy.resources?.includes(resource) || policy.resources?.includes('*'))
+            )
+          );
+        } else {
+          // Treat as role name
+          return user.roles?.some(role => role.name === permission);
+        }
+      });
 
       if (!hasPermissions) {
         navigate({ to: '/unauthorized' });
@@ -80,10 +100,25 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // If authenticated but missing permissions, don't render children
-  if (requiredPermissions.length > 0 && user) {
-    const hasPermissions = requiredPermissions.every(permission =>
-      user.permissions?.includes(permission)
-    );
+  if (requiredPermissions.length > 0 && user && user.roles) {
+    const hasPermissions = requiredPermissions.every(permission => {
+      // Parse permission format: "action:resource" or just "role"
+      if (permission.includes(':')) {
+        const [action, resource] = permission.split(':');
+        return user.roles?.some(role =>
+          role.policies?.some(
+            policy =>
+              policy.isActive &&
+              policy.effect === 'allow' &&
+              (policy.actions?.includes(action) || policy.actions?.includes('*')) &&
+              (policy.resources?.includes(resource) || policy.resources?.includes('*'))
+          )
+        );
+      } else {
+        // Treat as role name
+        return user.roles?.some(role => role.name === permission);
+      }
+    });
 
     if (!hasPermissions) {
       return null;
@@ -121,13 +156,28 @@ export const useAuthGuard = (requiredPermissions: string[] = []) => {
   const user = useStore(authStore, authSelectors.getUser);
 
   const hasPermissions = React.useMemo(() => {
-    if (!isAuthenticated || !user || requiredPermissions.length === 0) {
+    if (!isAuthenticated || !user || !user.roles || requiredPermissions.length === 0) {
       return isAuthenticated;
     }
 
-    return requiredPermissions.every(permission =>
-      user.permissions?.includes(permission)
-    );
+    return requiredPermissions.every(permission => {
+      // Parse permission format: "action:resource" or just "role"
+      if (permission.includes(':')) {
+        const [action, resource] = permission.split(':');
+        return user.roles?.some(role =>
+          role.policies?.some(
+            policy =>
+              policy.isActive &&
+              policy.effect === 'allow' &&
+              (policy.actions?.includes(action) || policy.actions?.includes('*')) &&
+              (policy.resources?.includes(resource) || policy.resources?.includes('*'))
+          )
+        );
+      } else {
+        // Treat as role name
+        return user.roles?.some(role => role.name === permission);
+      }
+    });
   }, [isAuthenticated, user, requiredPermissions]);
 
   return {

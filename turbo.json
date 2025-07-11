@@ -3,26 +3,56 @@
   "ui": "stream",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"],
-      "env": ["NODE_ENV", "MODE", "DEV"]
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*"
+      ],
+      "outputs": [
+        "output-file.txt",
+        "dist/**"
+      ],
+      "env": [
+        "NODE_ENV",
+        "MODE",
+        "DEV"
+      ]
     },
     "lint": {
-      "dependsOn": ["^lint"],
-      "inputs": ["**/*.{ts,tsx,js,jsx}", "eslint.config.js", ".eslintrc.*"]
+      "dependsOn": [
+        "^lint"
+      ],
+      "inputs": [
+        "**/*.{ts,tsx,js,jsx}",
+        "eslint.config.js",
+        ".eslintrc.*"
+      ]
     },
     "format": {
-      "dependsOn": ["^format"],
-      "inputs": ["**/*.{ts,tsx,js,jsx,json,md,yml,yaml}", ".prettierrc.*", ".prettierignore"]
+      "dependsOn": [
+        "^format"
+      ],
+      "inputs": [
+        "**/*.{ts,tsx,js,jsx,json,md,yml,yaml}",
+        ".prettierrc.*",
+        ".prettierignore"
+      ]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": [
+        "^check-types"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true,
-      "env": ["NODE_ENV", "MODE", "DEV"]
+      "env": [
+        "NODE_ENV",
+        "MODE",
+        "DEV"
+      ]
     }
   }
 }

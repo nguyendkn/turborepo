@@ -122,7 +122,7 @@ const envSchema = z.object({
   MINIO_DEFAULT_BUCKET: z.string().default('uploads'),
 
   // Admin seeding configuration
-  ADMIN_EMAIL: z.string().email().default('admin@csmart.com'),
+  ADMIN_EMAIL: z.string().email().default('admin@csmart.cloud'),
   ADMIN_PASSWORD: z.string().min(8).default('Admin123!@#'),
   ADMIN_FIRST_NAME: z.string().default('System'),
   ADMIN_LAST_NAME: z.string().default('Administrator'),

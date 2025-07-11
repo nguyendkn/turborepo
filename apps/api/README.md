@@ -132,7 +132,7 @@ The API uses JWT-based authentication with refresh tokens:
 
 After running the seed script, you can use these default accounts:
 
-- **Admin**: `admin@csmart.com` / `admin123`
+- **Admin**: `admin@csmart.cloud` / `admin123`
 - **Test User**: `test@csmart.com` / `test123`
 
 ## Database Schema

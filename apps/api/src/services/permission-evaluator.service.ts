@@ -3,20 +3,20 @@ import { HTTPException } from 'hono/http-exception';
 import { policyEngineService } from './policy-engine.service';
 
 import {
-  PolicyEvaluationCache,
-  RolePolicy,
-  UserRole,
-  type IPolicy,
-  type IRole,
+    PolicyEvaluationCache,
+    RolePolicy,
+    UserRole,
+    type IPolicy,
+    type IRole,
 } from '@/database/models';
 import type {
-  PermissionRequest,
-  Policy,
-  PolicyConditions,
-  PolicyEvaluationContext,
-  PolicyEvaluationResult,
-  Role,
-  User,
+    PermissionRequest,
+    Policy,
+    PolicyConditions,
+    PolicyEvaluationContext,
+    PolicyEvaluationResult,
+    Role,
+    User,
 } from '@/types';
 import type { RoleMetadata } from '@/types/database';
 import { logger } from '@/utils/logger';
@@ -98,19 +98,45 @@ export class PermissionEvaluatorService {
 
     // Evaluate policies
     let hasPermission = false;
+    console.log('DEBUG: Starting policy evaluation for', {
+      userId: user.id,
+      action: request.action,
+      resource: request.resource,
+      totalPolicies: allPolicies.length
+    });
+
     for (const policy of allPolicies.sort((a, b) => b.priority - a.priority)) {
-      if (!policy.isActive) continue;
+      if (!policy.isActive) {
+        console.log('DEBUG: Skipping inactive policy:', policy.name);
+        continue;
+      }
+
+      console.log('DEBUG: Evaluating policy:', {
+        name: policy.name,
+        actions: policy.actions,
+        resources: policy.resources,
+        effect: policy.effect
+      });
 
       const evaluation = await policyEngineService.evaluatePolicy(
         policy,
         evaluationContext
       );
 
+      console.log('DEBUG: Policy evaluation result:', {
+        policyName: policy.name,
+        decision: evaluation.decision,
+        allowed: evaluation.allowed,
+        reason: evaluation.reason
+      });
+
       if (evaluation.decision === 'allow') {
         hasPermission = true;
+        console.log('DEBUG: Permission GRANTED by policy:', policy.name);
         break; // Allow takes precedence
       } else if (evaluation.decision === 'deny') {
         hasPermission = false;
+        console.log('DEBUG: Permission DENIED by policy:', policy.name);
         break; // Explicit deny overrides any allow
       }
     }
