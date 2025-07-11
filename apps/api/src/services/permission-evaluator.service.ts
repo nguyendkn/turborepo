@@ -6,17 +6,17 @@ import {
   PolicyEvaluationCache,
   RolePolicy,
   UserRole,
-  type IRole,
   type IPolicy,
+  type IRole,
 } from '@/database/models';
 import type {
-  PolicyEvaluationContext,
-  PolicyEvaluationResult,
   PermissionRequest,
-  User,
-  Role,
   Policy,
   PolicyConditions,
+  PolicyEvaluationContext,
+  PolicyEvaluationResult,
+  Role,
+  User,
 } from '@/types';
 import type { RoleMetadata } from '@/types/database';
 import { logger } from '@/utils/logger';
@@ -418,8 +418,7 @@ export class PermissionEvaluatorService {
   async getUserRoles(userId: string): Promise<Role[]> {
     try {
       // Get user roles
-      const userRoleData = await UserRole.find({ userId })
-        .populate('roleId');
+      const userRoleData = await UserRole.find({ userId }).populate('roleId');
 
       const roles: Role[] = [];
 
@@ -432,8 +431,9 @@ export class PermissionEvaluatorService {
         if (!roleDoc.isActive) continue;
 
         // Get policies for this role
-        const rolePoliciesData = await RolePolicy.find({ roleId: roleDoc._id })
-          .populate('policyId');
+        const rolePoliciesData = await RolePolicy.find({
+          roleId: roleDoc._id,
+        }).populate('policyId');
 
         const policies: Policy[] = [];
         for (const rolePolicy of rolePoliciesData) {

@@ -104,6 +104,22 @@ const envSchema = z.object({
     .string()
     .transform(val => val === 'true')
     .default('true'),
+
+  // MinIO configuration
+  MINIO_ENDPOINT: z.string().default('localhost'),
+  MINIO_PORT: z
+    .string()
+    .transform(Number)
+    .pipe(z.number().min(1).max(65535))
+    .default('9000'),
+  MINIO_ACCESS_KEY: z.string().default('minioadmin'),
+  MINIO_SECRET_KEY: z.string().default('minioadmin123'),
+  MINIO_USE_SSL: z
+    .string()
+    .transform(val => val === 'true')
+    .default('false'),
+  MINIO_REGION: z.string().default('us-east-1'),
+  MINIO_DEFAULT_BUCKET: z.string().default('uploads'),
 });
 
 /**
@@ -174,6 +190,16 @@ export const config = {
 
   docs: {
     enabled: env.API_DOCS_ENABLED,
+  },
+
+  minio: {
+    endpoint: env.MINIO_ENDPOINT,
+    port: env.MINIO_PORT,
+    accessKey: env.MINIO_ACCESS_KEY,
+    secretKey: env.MINIO_SECRET_KEY,
+    useSSL: env.MINIO_USE_SSL,
+    region: env.MINIO_REGION,
+    defaultBucket: env.MINIO_DEFAULT_BUCKET,
   },
 } as const;
 

@@ -3,6 +3,7 @@ import { serve } from '@hono/node-server';
 import { createApp } from '@/app';
 import { config } from '@/config/app';
 import { connectToDatabase } from '@/config/database';
+import { initializeMinIO } from '@/config/minio';
 import { gracefulShutdown } from '@/utils/graceful-shutdown';
 import { logger } from '@/utils/logger';
 
@@ -13,6 +14,9 @@ async function startServer(): Promise<void> {
   try {
     // Connect to MongoDB
     await connectToDatabase();
+
+    // Initialize MinIO
+    await initializeMinIO();
 
     // Create the Hono app
     const app = createApp();
@@ -47,3 +51,4 @@ if (import.meta.main) {
 }
 
 export { createApp };
+

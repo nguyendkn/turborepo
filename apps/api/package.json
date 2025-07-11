@@ -31,7 +31,10 @@
     "db:seed-data": "bun run src/scripts/seed-data.ts",
     "db:seed-data:reset": "bun run src/scripts/seed-data.ts --reset",
     "db:seed-data:help": "bun run src/scripts/seed-data.ts --help",
-    "docs:generate": "swagger-jsdoc -d src/docs/swagger.config.ts -o docs/api.json src/**/*.ts"
+    "docs:generate": "swagger-jsdoc -d src/docs/swagger.config.ts -o docs/api.json src/**/*.ts",
+    "storage:test": "bun run src/scripts/test-storage.ts",
+    "test:storage": "vitest run src/tests/integration/storage.test.ts",
+    "test:storage:watch": "vitest watch src/tests/integration/storage.test.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.15.0",
@@ -46,6 +49,7 @@
     "hono": "^4.8.4",
     "ioredis": "^5.6.1",
     "jsonwebtoken": "^9.0.2",
+    "minio": "^8.0.5",
     "mongoose": "^8.16.2",
     "nodemailer": "^6.10.1",
     "rate-limiter-flexible": "^5.0.5",
@@ -60,6 +64,7 @@
     "@types/cors": "^2.8.19",
     "@types/ioredis": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/minio": "^7.1.1",
     "@types/mongoose": "^5.11.97",
     "@types/node": "^20.19.4",
     "@types/nodemailer": "^6.4.17",

@@ -5,6 +5,7 @@ import { permissionRoutes } from '@/routes/permissions';
 import { policyRoutes } from '@/routes/policies';
 import { profileRoutes } from '@/routes/profile';
 import { roleRoutes } from '@/routes/roles';
+import { storage } from '@/routes/storage';
 import { userRoutes } from '@/routes/users';
 import type { AppEnv } from '@/types';
 
@@ -23,6 +24,7 @@ v1Routes.route('/profile', profileRoutes);
 v1Routes.route('/roles', roleRoutes);
 v1Routes.route('/policies', policyRoutes);
 v1Routes.route('/permissions', permissionRoutes);
+v1Routes.route('/storage', storage);
 
 // Mount versioned routes
 apiRoutes.route('/v1', v1Routes);

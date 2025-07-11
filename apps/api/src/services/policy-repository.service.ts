@@ -2,7 +2,10 @@ import { HTTPException } from 'hono/http-exception';
 
 import { Policy as PolicyModel, type IPolicy } from '@/database/models';
 import type { Policy, PolicyConditions } from '@/types';
-import type { PolicyFilterConditions, MongoSortOptions } from '@/types/database';
+import type {
+  MongoSortOptions,
+  PolicyFilterConditions,
+} from '@/types/database';
 import { logger } from '@/utils/logger';
 
 /**
@@ -51,7 +54,9 @@ export class PolicyRepositoryService {
   }): Promise<Policy> {
     try {
       // Check if policy name already exists
-      const existingPolicy = await PolicyModel.findOne({ name: policyData.name });
+      const existingPolicy = await PolicyModel.findOne({
+        name: policyData.name,
+      });
 
       if (existingPolicy) {
         throw new HTTPException(409, { message: 'Policy name already exists' });
@@ -206,7 +211,9 @@ export class PolicyRepositoryService {
 
       // Check if new name conflicts with existing policy
       if (updates.name && updates.name !== existingPolicy.name) {
-        const conflictingPolicy = await PolicyModel.findOne({ name: updates.name });
+        const conflictingPolicy = await PolicyModel.findOne({
+          name: updates.name,
+        });
 
         if (conflictingPolicy) {
           throw new HTTPException(409, {

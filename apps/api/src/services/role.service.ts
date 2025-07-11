@@ -1,12 +1,12 @@
 import { HTTPException } from 'hono/http-exception';
 
 import {
-    Policy as PolicyModel,
-    Role as RoleModel,
-    RolePolicy,
-    UserRole,
-    type IPolicy,
-    type IRole
+  Policy as PolicyModel,
+  Role as RoleModel,
+  RolePolicy,
+  UserRole,
+  type IPolicy,
+  type IRole,
 } from '@/database/models';
 import type { Policy, PolicyConditions, Role } from '@/types';
 import type { RoleMetadata } from '@/types/database';
@@ -46,10 +46,7 @@ export class RoleService {
   /**
    * Convert Mongoose role document to Role interface
    */
-  private convertToRole(
-    dbRole: IRole,
-    policies: Policy[] = []
-  ): Role {
+  private convertToRole(dbRole: IRole, policies: Policy[] = []): Role {
     const result: Role = {
       id: dbRole._id.toString(),
       name: dbRole.name,
@@ -113,13 +110,20 @@ export class RoleService {
       const rolesWithPolicies = await Promise.all(
         rolesData.map(async role => {
           // Get role policies
-          const rolePoliciesData = await RolePolicy.find({ roleId: role._id })
-            .populate('policyId');
+          const rolePoliciesData = await RolePolicy.find({
+            roleId: role._id,
+          }).populate('policyId');
 
           const rolePoliciesList: Policy[] = [];
           for (const rp of rolePoliciesData) {
-            if (rp.policyId && typeof rp.policyId === 'object' && '_id' in rp.policyId) {
-              rolePoliciesList.push(this.convertToPolicy(rp.policyId as unknown as IPolicy));
+            if (
+              rp.policyId &&
+              typeof rp.policyId === 'object' &&
+              '_id' in rp.policyId
+            ) {
+              rolePoliciesList.push(
+                this.convertToPolicy(rp.policyId as unknown as IPolicy)
+              );
             }
           }
 
@@ -154,13 +158,20 @@ export class RoleService {
       }
 
       // Get role policies
-      const rolePoliciesData = await RolePolicy.find({ roleId: id })
-        .populate('policyId');
+      const rolePoliciesData = await RolePolicy.find({ roleId: id }).populate(
+        'policyId'
+      );
 
       const rolePoliciesList: Policy[] = [];
       for (const rp of rolePoliciesData) {
-        if (rp.policyId && typeof rp.policyId === 'object' && '_id' in rp.policyId) {
-          rolePoliciesList.push(this.convertToPolicy(rp.policyId as unknown as IPolicy));
+        if (
+          rp.policyId &&
+          typeof rp.policyId === 'object' &&
+          '_id' in rp.policyId
+        ) {
+          rolePoliciesList.push(
+            this.convertToPolicy(rp.policyId as unknown as IPolicy)
+          );
         }
       }
 
@@ -183,13 +194,20 @@ export class RoleService {
       }
 
       // Get role policies
-      const rolePoliciesData = await RolePolicy.find({ roleId: roleData._id })
-        .populate('policyId');
+      const rolePoliciesData = await RolePolicy.find({
+        roleId: roleData._id,
+      }).populate('policyId');
 
       const rolePoliciesList: Policy[] = [];
       for (const rp of rolePoliciesData) {
-        if (rp.policyId && typeof rp.policyId === 'object' && '_id' in rp.policyId) {
-          rolePoliciesList.push(this.convertToPolicy(rp.policyId as unknown as IPolicy));
+        if (
+          rp.policyId &&
+          typeof rp.policyId === 'object' &&
+          '_id' in rp.policyId
+        ) {
+          rolePoliciesList.push(
+            this.convertToPolicy(rp.policyId as unknown as IPolicy)
+          );
         }
       }
 
@@ -222,7 +240,7 @@ export class RoleService {
       // Validate that all policy IDs exist
       if (roleData.policyIds.length > 0) {
         const existingPolicies = await PolicyModel.find({
-          _id: { $in: roleData.policyIds }
+          _id: { $in: roleData.policyIds },
         });
 
         if (existingPolicies.length !== roleData.policyIds.length) {
@@ -303,7 +321,7 @@ export class RoleService {
       // Validate policy IDs if provided
       if (updates.policyIds && updates.policyIds.length > 0) {
         const existingPolicies = await PolicyModel.find({
-          _id: { $in: updates.policyIds }
+          _id: { $in: updates.policyIds },
         });
 
         if (existingPolicies.length !== updates.policyIds.length) {
@@ -329,7 +347,9 @@ export class RoleService {
         updateData.metadata = updates.metadata;
 
       if (Object.keys(updateData).length > 0) {
-        await RoleModel.findByIdAndUpdate(id, updateData, { runValidators: true });
+        await RoleModel.findByIdAndUpdate(id, updateData, {
+          runValidators: true,
+        });
       }
 
       // Update role policies if provided
@@ -476,7 +496,10 @@ export class RoleService {
           // Convert to Role interface
           role = this.convertToRole(savedRole, []);
         } catch (createError) {
-          logger.error(`Failed to create default role '${roleName}':`, createError);
+          logger.error(
+            `Failed to create default role '${roleName}':`,
+            createError
+          );
           throw createError;
         }
       } else {

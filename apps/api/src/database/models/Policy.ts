@@ -1,4 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Document, Schema, Types, model } from 'mongoose';
+
 import type { PolicyConditions } from '@/types/policy';
 
 /**
