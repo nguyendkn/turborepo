@@ -1,5 +1,5 @@
-import type { Policy } from './policy';
 import type { RoleMetadata } from './database';
+import type { Policy } from './policy';
 
 /**
  * Dynamic role definition

@@ -40,7 +40,9 @@ export class FileRepository {
       return this.toFileRecord(savedFile);
     } catch (error) {
       logger.error('Failed to create file record:', { error, options });
-      throw new Error(`Failed to create file record: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to create file record: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -53,11 +55,16 @@ export class FileRepository {
         return null;
       }
 
-      const file = await File.findById(id).populate('userId', 'email firstName lastName');
+      const file = await File.findById(id).populate(
+        'userId',
+        'email firstName lastName'
+      );
       return file ? this.toFileRecord(file) : null;
     } catch (error) {
       logger.error('Failed to find file by ID:', { error, id });
-      throw new Error(`Failed to find file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to find file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -66,16 +73,18 @@ export class FileRepository {
    */
   async findByKey(bucket: string, key: string): Promise<FileRecord | null> {
     try {
-      const file = await File.findOne({ 
-        bucket, 
-        key, 
-        deletedAt: { $exists: false } 
+      const file = await File.findOne({
+        bucket,
+        key,
+        deletedAt: { $exists: false },
       }).populate('userId', 'email firstName lastName');
-      
+
       return file ? this.toFileRecord(file) : null;
     } catch (error) {
       logger.error('Failed to find file by key:', { error, bucket, key });
-      throw new Error(`Failed to find file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to find file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -83,7 +92,7 @@ export class FileRepository {
    * Find files by user ID
    */
   async findByUserId(
-    userId: string, 
+    userId: string,
     options: Omit<FileQueryOptions, 'userId'> = {}
   ): Promise<FileQueryResult> {
     try {
@@ -93,14 +102,21 @@ export class FileRepository {
           total: 0,
           page: 1,
           limit: options.limit || 20,
+          offset: 0,
           hasMore: false,
         };
       }
 
       return this.query({ ...options, userId });
     } catch (error) {
-      logger.error('Failed to find files by user ID:', { error, userId, options });
-      throw new Error(`Failed to find files: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      logger.error('Failed to find files by user ID:', {
+        error,
+        userId,
+        options,
+      });
+      throw new Error(
+        `Failed to find files: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -143,7 +159,11 @@ export class FileRepository {
       }
 
       if (mimeType) {
-        filter.mimeType = new RegExp(mimeType, 'i');
+        if (Array.isArray(mimeType)) {
+          filter.mimeType = { $in: mimeType };
+        } else {
+          filter.mimeType = new RegExp(mimeType, 'i');
+        }
       }
 
       if (typeof isPublic === 'boolean') {
@@ -181,18 +201,24 @@ export class FileRepository {
         total,
         page,
         limit,
+        offset,
         hasMore,
       };
     } catch (error) {
       logger.error('Failed to query files:', { error, options });
-      throw new Error(`Failed to query files: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to query files: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
   /**
    * Update file record
    */
-  async update(id: string, updates: FileUpdateOptions): Promise<FileRecord | null> {
+  async update(
+    id: string,
+    updates: FileUpdateOptions
+  ): Promise<FileRecord | null> {
     try {
       if (!Types.ObjectId.isValid(id)) {
         return null;
@@ -207,14 +233,19 @@ export class FileRepository {
       return file ? this.toFileRecord(file) : null;
     } catch (error) {
       logger.error('Failed to update file:', { error, id, updates });
-      throw new Error(`Failed to update file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to update file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
   /**
    * Update file status
    */
-  async updateStatus(id: string, status: FileStatus): Promise<FileRecord | null> {
+  async updateStatus(
+    id: string,
+    status: FileStatus
+  ): Promise<FileRecord | null> {
     return this.update(id, { status });
   }
 
@@ -229,11 +260,11 @@ export class FileRepository {
 
       const result = await File.findByIdAndUpdate(
         id,
-        { 
-          $set: { 
+        {
+          $set: {
             deletedAt: new Date(),
-            status: 'DELETED' as FileStatus
-          } 
+            status: 'DELETED' as FileStatus,
+          },
         },
         { new: true }
       );
@@ -241,7 +272,9 @@ export class FileRepository {
       return !!result;
     } catch (error) {
       logger.error('Failed to soft delete file:', { error, id });
-      throw new Error(`Failed to delete file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to delete file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -258,7 +291,9 @@ export class FileRepository {
       return !!result;
     } catch (error) {
       logger.error('Failed to delete file:', { error, id });
-      throw new Error(`Failed to delete file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to delete file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -273,7 +308,7 @@ export class FileRepository {
   }> {
     try {
       const filter: Record<string, unknown> = {
-        deletedAt: { $exists: false }
+        deletedAt: { $exists: false },
       };
 
       if (userId && Types.ObjectId.isValid(userId)) {
@@ -336,7 +371,9 @@ export class FileRepository {
       };
     } catch (error) {
       logger.error('Failed to get file stats:', { error, userId });
-      throw new Error(`Failed to get file stats: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to get file stats: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -344,8 +381,13 @@ export class FileRepository {
    * Convert IFile to FileRecord
    */
   private toFileRecord(file: IFile): FileRecord {
+    const metadata =
+      file.metadata && file.metadata instanceof Map
+        ? Object.fromEntries(Array.from(file.metadata.entries()))
+        : undefined;
+
     return {
-      _id: file._id.toString(),
+      id: file._id.toString(),
       originalName: file.originalName,
       fileName: file.fileName,
       filePath: file.filePath,
@@ -356,7 +398,7 @@ export class FileRepository {
       userId: file.userId.toString(),
       status: file.status,
       isPublic: file.isPublic,
-      metadata: file.metadata ? Object.fromEntries(file.metadata) : undefined,
+      metadata: metadata,
       fileHash: file.fileHash,
       uploadId: file.uploadId,
       createdAt: file.createdAt,

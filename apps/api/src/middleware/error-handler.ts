@@ -1,8 +1,8 @@
 import type { ErrorHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 
+import type { ApiErrorDetails, ApiResponse, AppEnv } from '@/types';
 import { ErrorCode } from '@/types';
-import type { AppEnv, ApiResponse } from '@/types';
 import { logger } from '@/utils/logger';
 
 /**
@@ -40,12 +40,13 @@ export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
   // Handle validation errors (Zod)
   if (err.name === 'ZodError') {
     const zodError = err as { issues?: unknown[]; errors?: unknown[] };
+    const details = zodError.issues || zodError.errors || undefined;
     const response: ApiResponse = {
       success: false,
       error: {
         code: ErrorCode.VALIDATION_ERROR,
         message: 'Validation failed',
-        details: zodError.issues || zodError.errors,
+        details: details as ApiErrorDetails | undefined,
       },
       timestamp: new Date().toISOString(),
       requestId,

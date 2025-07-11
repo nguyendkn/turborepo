@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Document, model, Model, Schema, Types } from 'mongoose';
 
 import type { FileStatus } from '@/types/storage';
 
@@ -22,7 +22,19 @@ export interface IFile extends Document {
   uploadId?: string;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt?: Date;
+  deletedAt?: Date | undefined;
+
+  // Instance methods
+  softDelete(): Promise<IFile>;
+  restore(): Promise<IFile>;
+}
+
+/**
+ * File model interface with static methods
+ */
+export interface IFileModel extends Model<IFile> {
+  findActive(filter?: Record<string, unknown>): ReturnType<Model<IFile>['find']>;
+  findByUser(userId: string | Types.ObjectId, filter?: Record<string, unknown>): ReturnType<Model<IFile>['find']>;
 }
 
 /**
@@ -126,19 +138,22 @@ fileSchema.index({ userId: 1, status: 1, createdAt: -1 });
 fileSchema.index({ bucket: 1, status: 1 });
 
 // Text index for search functionality
-fileSchema.index({ 
-  originalName: 'text', 
-  fileName: 'text' 
-}, {
-  weights: {
-    originalName: 10,
-    fileName: 5,
+fileSchema.index(
+  {
+    originalName: 'text',
+    fileName: 'text',
   },
-  name: 'file_text_index'
-});
+  {
+    weights: {
+      originalName: 10,
+      fileName: 5,
+    },
+    name: 'file_text_index',
+  }
+);
 
 // Virtual for file URL (can be computed based on bucket and key)
-fileSchema.virtual('url').get(function(this: IFile) {
+fileSchema.virtual('url').get(function (this: IFile) {
   if (this.isPublic) {
     // Return public URL format
     return `/api/v1/storage/public/${this.bucket}/${this.key}`;
@@ -148,63 +163,68 @@ fileSchema.virtual('url').get(function(this: IFile) {
 });
 
 // Virtual for file extension
-fileSchema.virtual('extension').get(function(this: IFile) {
+fileSchema.virtual('extension').get(function (this: IFile) {
   const lastDotIndex = this.originalName.lastIndexOf('.');
-  return lastDotIndex !== -1 ? this.originalName.substring(lastDotIndex + 1).toLowerCase() : '';
+  return lastDotIndex !== -1
+    ? this.originalName.substring(lastDotIndex + 1).toLowerCase()
+    : '';
 });
 
 // Virtual for human readable size
-fileSchema.virtual('humanSize').get(function(this: IFile) {
+fileSchema.virtual('humanSize').get(function (this: IFile) {
   const bytes = this.size;
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 });
 
 // Pre-save middleware to ensure consistent data
-fileSchema.pre('save', function(this: IFile, next) {
+fileSchema.pre('save', function (this: IFile, next) {
   // Ensure fileName is set if not provided
   if (!this.fileName && this.originalName) {
     this.fileName = this.originalName;
   }
-  
+
   // Ensure filePath is set if not provided
   if (!this.filePath && this.key) {
     this.filePath = this.key;
   }
-  
+
   next();
 });
 
 // Static method to find non-deleted files
-fileSchema.statics.findActive = function(filter = {}) {
-  return this.find({ 
-    ...filter, 
-    deletedAt: { $exists: false } 
+fileSchema.statics.findActive = function (filter = {}) {
+  return this.find({
+    ...filter,
+    deletedAt: { $exists: false },
   });
 };
 
 // Static method to find files by user
-fileSchema.statics.findByUser = function(userId: string | Types.ObjectId, filter = {}) {
-  return this.findActive({ 
-    ...filter, 
-    userId: new Types.ObjectId(userId) 
+fileSchema.statics.findByUser = function (
+  userId: string | Types.ObjectId,
+  filter = {}
+) {
+  return (this as IFileModel).findActive({
+    ...filter,
+    userId: new Types.ObjectId(userId),
   });
 };
 
 // Instance method to soft delete
-fileSchema.methods.softDelete = function(this: IFile) {
+fileSchema.methods.softDelete = function (this: IFile) {
   this.deletedAt = new Date();
   this.status = 'DELETED';
   return this.save();
 };
 
 // Instance method to restore from soft delete
-fileSchema.methods.restore = function(this: IFile) {
+fileSchema.methods.restore = function (this: IFile) {
   this.deletedAt = undefined;
   if (this.status === 'DELETED') {
     this.status = 'COMPLETED';
@@ -215,4 +235,4 @@ fileSchema.methods.restore = function(this: IFile) {
 /**
  * File model
  */
-export const File = model<IFile>('File', fileSchema);
+export const File = model<IFile, IFileModel>('File', fileSchema);

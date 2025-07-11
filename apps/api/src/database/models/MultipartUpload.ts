@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Document, Model, Schema, Types, model } from 'mongoose';
 
 import type { MultipartUploadStatus } from '@/types/storage';
 
@@ -10,7 +10,7 @@ export interface IChunkMetadata {
   size: number;
   etag: string;
   uploadedAt: Date;
-  hash?: string;
+  hash?: string | undefined;
 }
 
 /**
@@ -37,6 +37,21 @@ export interface IMultipartUpload extends Document {
   contentType?: string;
   originalName?: string;
   fileId?: Types.ObjectId; // Reference to File model when completed
+
+  // Instance methods
+  addChunk(chunkNumber: number, chunkData: IChunkMetadata): Promise<IMultipartUpload>;
+  complete(fileId?: Types.ObjectId): Promise<IMultipartUpload>;
+  abort(): Promise<IMultipartUpload>;
+  expire(): Promise<IMultipartUpload>;
+}
+
+/**
+ * Multipart upload model interface with static methods
+ */
+export interface IMultipartUploadModel extends Model<IMultipartUpload> {
+  findActive(filter?: Record<string, unknown>): ReturnType<Model<IMultipartUpload>['find']>;
+  findExpired(): ReturnType<Model<IMultipartUpload>['find']>;
+  findByUser(userId: string | Types.ObjectId, filter?: Record<string, unknown>): ReturnType<Model<IMultipartUpload>['find']>;
 }
 
 /**
@@ -211,8 +226,8 @@ multipartUploadSchema.pre('save', function(this: IMultipartUpload, next) {
 
 // Static method to find active uploads
 multipartUploadSchema.statics.findActive = function(filter = {}) {
-  return this.find({ 
-    ...filter, 
+  return this.find({
+    ...filter,
     status: { $in: ['INITIATED', 'IN_PROGRESS'] },
     expiresAt: { $gt: new Date() }
   });
@@ -228,25 +243,25 @@ multipartUploadSchema.statics.findExpired = function() {
 
 // Static method to find uploads by user
 multipartUploadSchema.statics.findByUser = function(userId: string | Types.ObjectId, filter = {}) {
-  return this.find({ 
-    ...filter, 
-    userId: new Types.ObjectId(userId) 
+  return this.find({
+    ...filter,
+    userId: new Types.ObjectId(userId)
   });
 };
 
 // Instance method to add chunk
 multipartUploadSchema.methods.addChunk = function(
-  this: IMultipartUpload, 
-  chunkNumber: number, 
+  this: IMultipartUpload,
+  chunkNumber: number,
   chunkData: IChunkMetadata
 ) {
   this.uploadedChunks.set(chunkNumber, chunkData);
-  
+
   // Update status to IN_PROGRESS if this is the first chunk
   if (this.status === 'INITIATED') {
     this.status = 'IN_PROGRESS';
   }
-  
+
   return this.save();
 };
 
@@ -276,4 +291,4 @@ multipartUploadSchema.methods.expire = function(this: IMultipartUpload) {
 /**
  * Multipart upload model
  */
-export const MultipartUpload = model<IMultipartUpload>('MultipartUpload', multipartUploadSchema);
+export const MultipartUpload = model<IMultipartUpload, IMultipartUploadModel>('MultipartUpload', multipartUploadSchema);

@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 
-import type { HonoBindings, ApiErrorDetails } from './database';
+import type { ApiErrorDetails, HonoBindings } from './database';
 import type { User } from './user';
 
 /**
@@ -29,7 +29,7 @@ export interface ApiResponse<T = unknown> {
   error?: {
     code: string;
     message: string;
-    details?: ApiErrorDetails;
+    details?: ApiErrorDetails | undefined;
   };
   meta?: {
     page?: number;

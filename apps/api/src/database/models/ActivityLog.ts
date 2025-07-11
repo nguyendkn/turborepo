@@ -1,4 +1,5 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Document, Schema, Types, model } from 'mongoose';
+
 import type { ActivityLogMetadata } from '@/types/database';
 
 /**
@@ -60,4 +61,7 @@ activityLogSchema.index({ createdAt: 1 });
 /**
  * ActivityLog model
  */
-export const ActivityLog = model<IActivityLog>('ActivityLog', activityLogSchema);
+export const ActivityLog = model<IActivityLog>(
+  'ActivityLog',
+  activityLogSchema
+);

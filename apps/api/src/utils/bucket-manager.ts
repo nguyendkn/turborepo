@@ -4,6 +4,35 @@ import type { BucketCreationOptions, BucketInfo } from '@/types/storage';
 import { logger } from '@/utils/logger';
 
 /**
+ * MinIO error interface
+ */
+interface MinioError extends Error {
+  code?: string;
+  statusCode?: number;
+}
+
+/**
+ * S3 Policy Statement interface
+ */
+interface PolicyStatement {
+  Effect: 'Allow' | 'Deny';
+  Principal?: {
+    AWS?: string | string[];
+  };
+  Action?: string | string[];
+  Resource?: string | string[];
+  Condition?: Record<string, unknown>;
+}
+
+/**
+ * S3 Policy interface
+ */
+interface S3Policy {
+  Version?: string;
+  Statement?: PolicyStatement[];
+}
+
+/**
  * Bucket policy templates
  */
 const BUCKET_POLICIES = {
@@ -80,7 +109,10 @@ export const bucketManager = {
         await this.setBucketPolicy(name, 'PUBLIC_READ');
       }
 
-      logger.info(`Bucket '${name}' created successfully`, { region, isPublic });
+      logger.info(`Bucket '${name}' created successfully`, {
+        region,
+        isPublic,
+      });
       return bucketInfo;
     } catch (error) {
       logger.error(`Failed to create bucket '${name}'`, error);
@@ -112,7 +144,7 @@ export const bucketManager = {
     try {
       return await minioClient.getBucketPolicy(bucketName);
     } catch (error) {
-      if ((error as any).code === 'NoSuchBucketPolicy') {
+      if ((error as MinioError).code === 'NoSuchBucketPolicy') {
         return null;
       }
       logger.error(`Failed to get bucket policy for '${bucketName}'`, error);
@@ -141,14 +173,20 @@ export const bucketManager = {
       const policy = await this.getBucketPolicy(bucketName);
       if (!policy) return false;
 
-      const policyObj = JSON.parse(policy);
-      return policyObj.Statement?.some((statement: any) =>
-        statement.Effect === 'Allow' &&
-        statement.Principal?.AWS?.includes('*') &&
-        statement.Action?.includes('s3:GetObject')
-      ) || false;
+      const policyObj = JSON.parse(policy) as S3Policy;
+      return (
+        policyObj.Statement?.some(
+          (statement: PolicyStatement) =>
+            statement.Effect === 'Allow' &&
+            statement.Principal?.AWS?.includes('*') &&
+            statement.Action?.includes('s3:GetObject')
+        ) || false
+      );
     } catch (error) {
-      logger.error(`Failed to check if bucket '${bucketName}' is public`, error);
+      logger.error(
+        `Failed to check if bucket '${bucketName}' is public`,
+        error
+      );
       return false;
     }
   },
@@ -186,7 +224,7 @@ export const bucketManager = {
       const buckets = await storageService.listBuckets();
 
       const bucketsWithInfo = await Promise.all(
-        buckets.map(async (bucket) => {
+        buckets.map(async bucket => {
           const isPublic = await this.isBucketPublic(bucket.name);
           return {
             ...bucket,
@@ -217,7 +255,10 @@ export const bucketManager = {
       try {
         await this.createBucket(bucketConfig);
       } catch (error) {
-        logger.error(`Failed to create default bucket '${bucketConfig.name}'`, error);
+        logger.error(
+          `Failed to create default bucket '${bucketConfig.name}'`,
+          error
+        );
       }
     }
   },
@@ -235,7 +276,9 @@ export const bucketManager = {
     }
 
     if (!/^[a-z0-9.-]+$/.test(name)) {
-      throw new Error('Bucket name can only contain lowercase letters, numbers, dots, and hyphens');
+      throw new Error(
+        'Bucket name can only contain lowercase letters, numbers, dots, and hyphens'
+      );
     }
 
     if (name.startsWith('.') || name.endsWith('.')) {

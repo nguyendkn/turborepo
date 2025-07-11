@@ -1,7 +1,7 @@
 // Export all models
 export { ActivityLog, type IActivityLog } from './ActivityLog';
 export { File, type IFile } from './File';
-export { MultipartUpload, type IMultipartUpload } from './MultipartUpload';
+export { MultipartUpload, type IChunkMetadata, type IMultipartUpload } from './MultipartUpload';
 export { Policy, type IPolicy } from './Policy';
 export { PolicyEvaluationCache, type IPolicyEvaluationCache } from './PolicyEvaluationCache';
 export { Profile, type IProfile } from './Profile';

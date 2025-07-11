@@ -1,5 +1,119 @@
 
 /**
+ * File status enum
+ */
+export type FileStatus = 'UPLOADING' | 'COMPLETED' | 'FAILED' | 'DELETED' | 'PROCESSING';
+
+/**
+ * Multipart upload status enum
+ */
+export type MultipartUploadStatus = 'INITIATED' | 'IN_PROGRESS' | 'COMPLETED' | 'ABORTED' | 'EXPIRED' | 'FAILED';
+
+/**
+ * Chunk metadata interface
+ */
+export interface IChunkMetadata {
+  chunkNumber: number;
+  size: number;
+  etag: string;
+  uploadedAt: Date;
+  hash?: string | undefined;
+}
+
+/**
+ * File create options
+ */
+export interface FileCreateOptions {
+  originalName: string;
+  fileName: string;
+  filePath: string;
+  size: number;
+  mimeType: string;
+  bucket: string;
+  key: string;
+  userId: string;
+  status?: FileStatus;
+  isPublic?: boolean;
+  metadata?: Record<string, string>;
+  fileHash?: string;
+  uploadId?: string;
+}
+
+/**
+ * File update options
+ */
+export interface FileUpdateOptions {
+  originalName?: string;
+  fileName?: string;
+  filePath?: string;
+  size?: number;
+  mimeType?: string;
+  bucket?: string;
+  key?: string;
+  status?: FileStatus;
+  isPublic?: boolean;
+  metadata?: Record<string, string>;
+  fileHash?: string;
+  uploadId?: string;
+  deletedAt?: Date | undefined;
+}
+
+/**
+ * File query options
+ */
+export interface FileQueryOptions {
+  userId?: string;
+  status?: FileStatus | FileStatus[];
+  mimeType?: string | string[];
+  bucket?: string;
+  isPublic?: boolean;
+  search?: string;
+  limit?: number;
+  offset?: number;
+  sortBy?: 'createdAt' | 'updatedAt' | 'size' | 'originalName';
+  sortOrder?: 'asc' | 'desc';
+  includeDeleted?: boolean;
+}
+
+/**
+ * File record interface
+ */
+export interface FileRecord {
+  id: string;
+  originalName: string;
+  fileName: string;
+  filePath: string;
+  size: number;
+  mimeType: string;
+  bucket: string;
+  key: string;
+  userId: string;
+  status: FileStatus;
+  isPublic: boolean;
+  metadata?: Record<string, string> | undefined;
+  fileHash?: string | undefined;
+  uploadId?: string | undefined;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt?: Date | undefined;
+  url?: string | undefined;
+  extension?: string | undefined;
+  humanSize?: string | undefined;
+}
+
+/**
+ * File query result
+ */
+export interface FileQueryResult {
+  files: FileRecord[];
+  total: number;
+  limit: number;
+  offset: number;
+  page: number;
+  hasMore: boolean;
+}
+
+/**
  * File upload options
  */
 export interface FileUploadOptions {

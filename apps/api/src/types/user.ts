@@ -1,5 +1,5 @@
-import type { Role } from './role';
 import type { UserAttributes } from './database';
+import type { Role } from './role';
 
 /**
  * User type for authentication

@@ -4,6 +4,7 @@ import { HTTPException } from 'hono/http-exception';
 import { config } from '@/config/app';
 import { profileRepository } from '@/repositories/profile.repository';
 import { userRepository } from '@/repositories/user.repository';
+import type { UserPreferences } from '@/types/database';
 import { logger } from '@/utils/logger';
 
 /**
@@ -88,7 +89,7 @@ export const profileService = {
       avatar?: string | null;
       phone?: string | null;
       dateOfBirth?: Date | null;
-      preferences?: Record<string, unknown> | null;
+      preferences?: UserPreferences | null;
     } = {};
     if (profileData.bio !== undefined) profileUpdates.bio = profileData.bio;
     if (profileData.avatar !== undefined)
